@@ -2,7 +2,6 @@
 from investment_base import InvestmentBase
 from investment_fund import InvestmentFund, AFund, BFund, CFund #HINT -- you will need to add something here
 
-print(AFund)
 
 class StudentInvestment(InvestmentBase):
   """
