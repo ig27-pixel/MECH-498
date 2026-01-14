@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 from investment_base import InvestmentBase
-from investment_fund import InvestmentFund #HINT -- you will need to add something here
+from investment_fund import InvestmentFund, AFund, BFund, CFund #HINT -- you will need to add something here
 
+print(AFund)
 
 class StudentInvestment(InvestmentBase):
   """
