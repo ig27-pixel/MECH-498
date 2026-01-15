@@ -61,7 +61,7 @@ class StudentInvestment(InvestmentBase):
 
     emploryer_match = (match_first_2 + match_next_6 * 0.5)
 
-    return slef.salary * (emploryer_match / 100.0)
+    return self.salary * (emploryer_match / 100.0)
     
   def calculate_total_contribution(self, your_contribution: float, employer_contribution: float) -> float:
     """
