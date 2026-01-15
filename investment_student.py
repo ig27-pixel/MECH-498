@@ -205,8 +205,6 @@ class StudentInvestment(InvestmentBase):
         high = mid
 
     return best_value
-    
-
   
   def calculate_risky_retirement_2065(self):
     """
