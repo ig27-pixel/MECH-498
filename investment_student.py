@@ -39,7 +39,7 @@ class StudentInvestment(InvestmentBase):
 
       #Growth
       rate = fund.get_return_rate(year)
-      value *= (1.0 + rate)
+      value *= (1.0 + rate / 100.0)
 
     return value
 
