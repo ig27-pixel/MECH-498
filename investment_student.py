@@ -33,7 +33,7 @@ class StudentInvestment(InvestmentBase):
     ## TODO -- implement this method
     value = float(principal)
 
-    for year in range(int(start_year), int(end_year) + 1):
+    for year in range(int(start_year), int(end_year)):
       rate = fund.get_rate_by_year(year)
       value = (value + contribution) * (1.0 + rate)
 
@@ -61,7 +61,7 @@ class StudentInvestment(InvestmentBase):
 
     emploryer_match = (match_first_2 + match_next_6 * 0.5)
     emploryer_match = min(4.0, emploryer_match)
-    
+
     return self.salary * (emploryer_match / 100.0)
     
   def calculate_total_contribution(self, your_contribution: float, employer_contribution: float) -> float:
