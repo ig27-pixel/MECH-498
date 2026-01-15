@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from investment_base import InvestmentBase
-from investment_fund import InvestmentFund, AFund, BFund, CFund #HINT -- you will need to add something here
+from investment_fund import InvestmentFund, AFund, BFund, CFund
 
 
 class StudentInvestment(InvestmentBase):
@@ -31,7 +31,13 @@ class StudentInvestment(InvestmentBase):
       float: Total investment value after compound growth
     """
     ## TODO -- implement this method
-    pass 
+    value = float(principal)
+
+    for year in range(int(start_year), int(end_year) + 1):
+      rate = fund.get_rate_by_year(year)
+      value = (value + contribution) * (1.0 + rate)
+
+    return value
 
   def calculate_401k_match(self, input_percent: float) -> float:
     """
@@ -48,7 +54,14 @@ class StudentInvestment(InvestmentBase):
       float: Employer matching amount in dollars
     """
     ## TODO -- implement this method
-    pass
+    p = max(0.0, float(input_percent))
+
+    match_first_2 = min(p, 2.0)
+    match_next_6 = min(max(p - 2.0, 0.0), 6.0)
+
+    emploryer_match = (match_first_2 + match_next_6 * 0.5)
+
+    return slef.salary * (emploryer_match / 100.0)
     
   def calculate_total_contribution(self, your_contribution: float, employer_contribution: float) -> float:
     """
@@ -62,7 +75,8 @@ class StudentInvestment(InvestmentBase):
       float: Total contribution amount (capped at $24,500 IRS limit)
     """
     ## TODO -- implement this method
-    return min(...)
+    total = float(your_contribution) + float(employer_contribution)
+    return min(total, 24500)
 
   def calculate_conservative_retirement(self):
     """
