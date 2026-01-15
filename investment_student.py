@@ -33,7 +33,7 @@ class StudentInvestment(InvestmentBase):
     ## TODO -- implement this method
     value = float(principal)
 
-    for year in range(int(start_year), int(end_year)):
+    for year in range(int(start_year), int(end_year) + 1):
       #Contribution
       value += float(contribution)
 
