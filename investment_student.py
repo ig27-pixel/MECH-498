@@ -117,7 +117,7 @@ class StudentInvestment(InvestmentBase):
     Returns:
       float: Total retirement value after early contributions strategy
     """
-    ## TODO -- implement this method
+
     # annual contributions during first 10 years
     your = self.salary * 0.06
     employer = self.calculate_401k_match(6)
@@ -153,7 +153,7 @@ class StudentInvestment(InvestmentBase):
     Returns:
       float: Total retirement value using late contributions strategy
     """
-    ## TODO -- implement this method
+
     fund = BFund()
     target = self.calculate_first_10()
 
@@ -218,8 +218,20 @@ class StudentInvestment(InvestmentBase):
     Returns:
       float: Total retirement value using risky fund (before market crash)
     """
-    ## TODO -- implement this method
-    pass
+
+    your = self.salary * 0.10
+    employer = self.calculate_401k_match(10)
+    total_contribution = self.calculate_total_contribution(your, employer)
+
+    final = self.calculate_investment_compounded_annually(
+      principal=0,
+      contribution=total_contribution,
+      fund=CFund(),
+      start_year=2025,
+      end_year=2065
+      )
+    
+    return final
   
   def calculate_risky_retirement_2066(self):
     """
@@ -231,7 +243,20 @@ class StudentInvestment(InvestmentBase):
     Returns:
       float: Total retirement value using risky fund (after market crash)
     """
-    ## TODO -- implement this method
+
+    your = self.salary * 0.10
+    employer = self.calculate_401k_match(10)
+    total_contribution = self.calculate_total_contribution(your, employer)
+
+    final = self.calculate_investment_compounded_annually(
+      principal=0,
+      contribution=total_contribution,
+      fund=CFund(),
+      start_year=2025,
+      end_year=2066
+      )
+    
+    return final
    
 
   
