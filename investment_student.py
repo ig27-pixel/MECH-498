@@ -161,22 +161,22 @@ class StudentInvestment(InvestmentBase):
     total_contribution = self.calculate_total_contribution(your, employer)
 
     # contribute from 2035 through 2065
-    after_30 = self.calculate_investment_compounded_annually(
+    final = self.calculate_investment_compounded_annually(
     principal=0,
     contribution=total_contribution,
     fund=BFund(),
     start_year=2035,
     end_year=2065
-  )
+    )
 
     # one more “grow only” call, consistent with how the starter code/tests treat the range
-    final = self.calculate_investment_compounded_annually(
-    principal=after_30,
-    contribution=0,
-    fund=BFund(),
-    start_year=2065,
-    end_year=2065
-    )
+    #final = self.calculate_investment_compounded_annually(
+    #principal=after_30,
+    #contribution=0,
+    #fund=BFund(),
+    #start_year=2065,
+    #end_year=2065
+    #)
 
     return final
   
