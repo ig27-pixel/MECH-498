@@ -34,12 +34,12 @@ class StudentInvestment(InvestmentBase):
     value = float(principal)
 
     for year in range(int(start_year), int(end_year) + 1):
-      #Contribution
-      value += float(contribution)
-
       #Growth
       rate = fund.get_rate_by_year(year)
       value *= (1.0 + rate)
+      
+      #Contribution
+      value += float(contribution)
 
     return value
 
