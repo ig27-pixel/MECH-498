@@ -38,8 +38,8 @@ class StudentInvestment(InvestmentBase):
       value += float(contribution)
 
       #Growth
-      rate = fund.get_return_rate(year)
-      value *= (1.0 + rate / 100.0)
+      rate = fund.get_rate_by_year(year)
+      value *= (1.0 + rate)
 
     return value
 
@@ -57,7 +57,7 @@ class StudentInvestment(InvestmentBase):
     Returns:
       float: Employer matching amount in dollars
     """
-    ## TODO -- implement this method
+
     p = max(0.0, float(input_percent))
 
     match_first_2 = min(p, 2.0)
@@ -79,7 +79,7 @@ class StudentInvestment(InvestmentBase):
     Returns:
       float: Total contribution amount (capped at $24,500 IRS limit)
     """
-    ## TODO -- implement this method
+
     total = float(your_contribution) + float(employer_contribution)
     return min(total, 24500)
 
