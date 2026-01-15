@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from typing import final
 from investment_base import InvestmentBase
 from investment_fund import InvestmentFund, AFund, BFund, CFund
 
@@ -93,7 +94,7 @@ class StudentInvestment(InvestmentBase):
     Returns:
       float: Total retirement value using conservative fund
     """
-    ## TODO -- implement this method
+
     your = self.salary * 0.10
     employer = self.calculate_401k_match(10)
     total_contribution = self.calculate_total_contribution(your, employer)
@@ -117,7 +118,30 @@ class StudentInvestment(InvestmentBase):
       float: Total retirement value after early contributions strategy
     """
     ## TODO -- implement this method
-    pass
+    # annual contributions during first 10 years
+    your = self.salary * 0.06
+    employer = self.calculate_401k_match(6)
+    total_contribution = self.calculate_total_contribution(your, employer)
+
+    # 10 contribution years: 2025..2034 inclusive
+    after_10 = self.calculate_investment_compounded_annually(
+      principal=0,
+      contribution=total_contribution,
+      fund=BFund(),
+      start_year=2025,
+      end_year=2035
+      )
+    
+    # grow only: 2035..2065 inclusive (no more contributions)
+    final = self.calculate_investment_compounded_annually(
+      principal=after_10,
+      contribution=0,
+      fund=BFund(),
+      start_year=2035,
+      end_year=2065
+      )
+    
+    return final
   
   def calculate_last_30(self):
     """
@@ -130,7 +154,59 @@ class StudentInvestment(InvestmentBase):
       float: Total retirement value using late contributions strategy
     """
     ## TODO -- implement this method
-    pass
+    fund = BFund()
+    target = self.calculate_first_10()
+
+    def final_value_for_percent(pct: float) -> float:
+      your = self.salary * (pct / 100.0)
+      employer = self.calculate_401k_match(pct)
+      total_contribution = self.calculate_total_contribution(your, employer)
+
+      # 30 contribution years: 2035..2064 inclusive
+      after_30 = self.calculate_investment_compounded_annually(
+        principal=0,
+        contribution=total_contribution,
+        fund=fund,
+        start_year=2035,
+        end_year=2065
+        )
+
+      # grow only: 2065..2065 inclusive (no more contributions)
+      final = self.calculate_investment_compounded_annually(
+        principal=after_30,
+        contribution=0,
+        fund=fund,
+        start_year=2065,
+        end_year=2065
+        )
+      
+      return final
+    
+    # binary search for the percent that matches target value
+    low = 0.0
+    high = 100.0
+    best_pct = low
+    best_value = final_value_for_percent(low)
+
+    for _ in range(25):
+      mid = (low + high) / 2.0
+      value = final_value_for_percent(mid)
+
+      # track closest match
+      if abs(value - target) < abs(low - target):
+        best_pct = mid
+        best_value = value
+        return value
+      
+      # move bounds
+      if value < target:
+        low = mid
+      else:
+        high = mid
+
+    return best_value
+    
+
   
   def calculate_risky_retirement_2065(self):
     """
