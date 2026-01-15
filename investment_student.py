@@ -60,7 +60,8 @@ class StudentInvestment(InvestmentBase):
     match_next_6 = min(max(p - 2.0, 0.0), 6.0)
 
     emploryer_match = (match_first_2 + match_next_6 * 0.5)
-
+    emploryer_match = min(4.0, emploryer_match)
+    
     return self.salary * (emploryer_match / 100.0)
     
   def calculate_total_contribution(self, your_contribution: float, employer_contribution: float) -> float:
