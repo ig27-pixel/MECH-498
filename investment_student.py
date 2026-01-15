@@ -30,7 +30,7 @@ class StudentInvestment(InvestmentBase):
     Returns:
       float: Total investment value after compound growth
     """
-    ## TODO -- implement this method
+
     value = float(principal)
 
     for year in range(int(start_year), int(end_year) + 1):
@@ -94,7 +94,17 @@ class StudentInvestment(InvestmentBase):
       float: Total retirement value using conservative fund
     """
     ## TODO -- implement this method
-    pass
+    your = self.salary * 0.10
+    employer = self.calculate_401k_match(10)
+    total_contribution = self.calculate_total_contribution(your, employer)
+
+    return self.calculate_investment_compounded_annually(
+      principal=0,
+      contribution=total_contribution,
+      fund=AFund(),
+      start_year=2025,
+      end_year=2065
+      )
   
   def calculate_first_10(self):
     """
