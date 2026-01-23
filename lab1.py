@@ -15,8 +15,8 @@ def rotate(P_B: np.ndarray) -> np.ndarray:
   """  
   P_B = np.asarray(P_B, dtype=float).reshape(3,)
 
-  th_y = np.pi/2
-  th_z = np.pi/4
+  th_y = -np.pi / 2
+  th_z = -np.pi / 4
 
   R_Y = np.array([[np.cos(th_y), 0, np.sin(th_y)],
                     [0, 1, 0],
