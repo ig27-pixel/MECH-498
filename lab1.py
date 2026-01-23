@@ -13,16 +13,20 @@ def rotate(P_B: np.ndarray) -> np.ndarray:
   Returns:
       np.ndarray: rotated array 
   """  
+  P_B = np.asarray(P_B, dtype=float).reshape(3,)
+
   th_y = np.pi/2
   th_z = np.pi/4
 
   R_Y = np.array([[np.cos(th_y), 0, np.sin(th_y)],
                     [0, 1, 0],
-                    [-np.sin(th_y), 0, np.cos(th_y)]])
+                    [-np.sin(th_y), 0, np.cos(th_y)]
+    ])
   
   R_Z = np.array([[np.cos(th_z), -np.sin(th_z), 0],
                     [np.sin(th_z), np.cos(th_z), 0],
-                    [0, 0, 1]])
+                    [0, 0, 1]
+    ])
   
   A_R_B = R_Y @ R_Z
   B_R_A = A_R_B.T
