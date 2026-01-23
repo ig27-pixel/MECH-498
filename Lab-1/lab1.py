@@ -13,7 +13,6 @@ def rotate(P_B: np.ndarray) -> np.ndarray:
   Returns:
       np.ndarray: rotated array 
   """  
-  P_B = np.asarray(P_B, dtype=float).reshape(3,)
 
   th_y = np.pi/2
   th_z = np.pi/4
