@@ -15,8 +15,8 @@ def rotate(P_B: np.ndarray) -> np.ndarray:
   """  
   P_B = np.asarray(P_B, dtype=float).reshape(3,)
 
-  th_y = -np.pi / 2
-  th_z = -np.pi / 4
+  th_y = np.pi / 2
+  th_z = np.pi / 4
 
   R_Y = np.array([[np.cos(th_y), 0, np.sin(th_y)],
                     [0, 1, 0],
@@ -29,8 +29,10 @@ def rotate(P_B: np.ndarray) -> np.ndarray:
     ])
   
   A_R_B = R_Y @ R_Z
+  R_B_A = A_R_B.T
 
-  return A_R_B @ P_B
+  P_A = R_B_A @ P_B
+  return P_A
 
 
 def euler_to_ht(angles: np.ndarray, pos: np.ndarray) ->np.ndarray:
