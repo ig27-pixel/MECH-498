@@ -1,8 +1,9 @@
+#Isaiah Gonzalez lab1.py
+
 import numpy as np
 import PyKDL as kdl
 import math
 from typing import Tuple
-
 
 def rotate(P_B: np.ndarray) -> np.ndarray:
   """Rotate a given vector by a set value
@@ -29,9 +30,8 @@ def rotate(P_B: np.ndarray) -> np.ndarray:
     ])
   
   A_R_B = R_Y @ R_Z
-  R_B_A = A_R_B.T
-
-  P_A = R_B_A @ P_B
+  P_A = A_R_B @ P_B
+  
   return P_A
 
 
