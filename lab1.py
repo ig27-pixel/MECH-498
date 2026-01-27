@@ -62,6 +62,7 @@ def euler_to_ht(angles: np.ndarray, pos: np.ndarray) ->np.ndarray:
                   [np.sin(th_z), np.cos(th_z), 0],
                   [0, 0, 1]])
   
+  # Z-Y_X rotation
   R = R_Z @ R_Y @ R_X
 
   A_T_B = np.eye(4)
@@ -70,7 +71,7 @@ def euler_to_ht(angles: np.ndarray, pos: np.ndarray) ->np.ndarray:
 
   A_T_B_inv = np.eye(4)
   A_T_B_inv[0:3, 0:3] = R.T
-  A_T_B_inv[:3, 3] = -R.T @ p
+  A_T_B_inv[:3, 3] = R.T @ p.T
 
   return A_T_B, A_T_B_inv
 
