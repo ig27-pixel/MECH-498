@@ -48,8 +48,9 @@ def euler_to_ht(angles: np.ndarray, pos: np.ndarray) ->np.ndarray:
   th_y = angles[1]
   th_z = angles[2]
 
-  p = pos.reshape(3)
+  p = np.array([pos[2], pos[1], pos[0]])
 
+  # Create rotation matrices
   R_X = np.array([[1, 0, 0],
                   [0, np.cos(th_x), -np.sin(th_x)],
                   [0, np.sin(th_x), np.cos(th_x)]])
@@ -65,10 +66,12 @@ def euler_to_ht(angles: np.ndarray, pos: np.ndarray) ->np.ndarray:
   # Z-Y_X rotation
   R = R_Z @ R_Y @ R_X
 
+  # Create the transformation matrix
   T = np.eye(4)
   T[0:3, 0:3] = R
   T[:3, 3] = p
 
+  # Calculate the inverse transformation matrix
   T_inv = np.linalg.inv(T)
   #T_inv = np.eye(4)
   #T_inv[0:3, 0:3] = R.T
