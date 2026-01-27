@@ -48,7 +48,7 @@ def euler_to_ht(angles: np.ndarray, pos: np.ndarray) ->np.ndarray:
   th_y = angles[1]
   th_z = angles[2]
 
-  p = pos.reshape(3)
+  p = pos.reshape(3,1)
 
   R_X = np.array([[1, 0, 0],
                   [0, np.cos(th_x), -np.sin(th_x)],
