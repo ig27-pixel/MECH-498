@@ -70,7 +70,7 @@ def euler_to_ht(angles: np.ndarray, pos: np.ndarray) ->np.ndarray:
 
   A_T_B_inv = np.eye(4)
   A_T_B_inv[0:3, 0:3] = R.T
-  A_T_B_inv[:3, 3] = -R.T @ p.T
+  A_T_B_inv[:3, 3] = -R.T @ p
 
   return A_T_B, A_T_B_inv
 
