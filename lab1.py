@@ -28,10 +28,10 @@ def rotate(P_B: np.ndarray) -> np.ndarray:
                     [0, 0, 1]
     ])
   
-  A_R_B = R_Y.T @ R_Z.T
+  A_R_B = R_Y @ R_Z
   P_A = A_R_B @ P_B.T
   
-  return P_A
+  return P_A.T
 
 
 def euler_to_ht(angles: np.ndarray, pos: np.ndarray) ->np.ndarray:
