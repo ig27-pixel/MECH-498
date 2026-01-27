@@ -15,6 +15,8 @@ def rotate(P_B: np.ndarray) -> np.ndarray:
       np.ndarray: rotated array 
   """  
 
+  P_B = P_B.reshape(3, 1)
+
   th_y = np.pi / 2
   th_z = np.pi / 4
 
@@ -29,8 +31,8 @@ def rotate(P_B: np.ndarray) -> np.ndarray:
     ])
   
   A_R_B = R_Y @ R_Z
-  P_A = A_R_B @ P_B.T
-  
+  P_A = A_R_B @ P_B
+
   return P_A.T
 
 
