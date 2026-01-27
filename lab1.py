@@ -73,6 +73,7 @@ def euler_to_ht(angles: np.ndarray, pos: np.ndarray) ->np.ndarray:
 
   # Calculate the inverse transformation matrix
   T_inv = np.linalg.inv(T)
+  
   #T_inv = np.eye(4)
   #T_inv[0:3, 0:3] = R.T
   #T_inv[:3, 3] = -R.T @ p
