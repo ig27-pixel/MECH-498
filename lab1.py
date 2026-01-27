@@ -21,14 +21,12 @@ def rotate(P_B: np.ndarray) -> np.ndarray:
   th_z = np.pi / 4
 
   R_Y = np.array([[np.cos(th_y), 0, np.sin(th_y)],
-                    [0, 1, 0],
-                    [-np.sin(th_y), 0, np.cos(th_y)]
-    ])
+                  [0, 1, 0],
+                  [-np.sin(th_y), 0, np.cos(th_y)]])
   
   R_Z = np.array([[np.cos(th_z), -np.sin(th_z), 0],
-                    [np.sin(th_z), np.cos(th_z), 0],
-                    [0, 0, 1]
-    ])
+                  [np.sin(th_z), np.cos(th_z), 0],
+                  [0, 0, 1]])
   
   A_R_B = R_Y @ R_Z
   P_A = A_R_B @ P_B
@@ -46,7 +44,33 @@ def euler_to_ht(angles: np.ndarray, pos: np.ndarray) ->np.ndarray:
   Returns:
       np.ndarray: 4x4 transformation matrix created from position and angle vector
   """
-  pass
+  th_x = angles[0]
+  th_y = angles[1]
+  th_z = angles[2]
+
+  p = pos.reshape(3)
+
+  R_X = np.array([[1, 0, 0],
+                  [0, np.cos(th_x), -np.sin(th_x)],
+                  [0, np.sin(th_x), np.cos(th_x)]])
+
+  R_Y = np.array([[np.cos(th_y), 0, np.sin(th_y)],
+                  [0, 1, 0],
+                  [-np.sin(th_y), 0, np.cos(th_y)]])
+  
+  R_Z = np.array([[np.cos(th_z), -np.sin(th_z), 0],
+                  [np.sin(th_z), np.cos(th_z), 0],
+                  [0, 0, 1]])
+  
+  R = R_Z @ R_Y @ R_X
+
+  A_T_B = np.eye(4)
+  A_T_B[0:3, 0:3] = R
+  A_T_B[:3, 3] = p
+
+  B_T_A = A_T_B.T
+  
+  return A_T_B, B_T_A
 
 
 def rollr(angle: float) -> np.ndarray:
