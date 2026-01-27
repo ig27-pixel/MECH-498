@@ -22,11 +22,15 @@ def rotate(P_B: np.ndarray) -> np.ndarray:
 
   R_Y = np.array([[np.cos(th_y), 0, np.sin(th_y)],
                   [0, 1, 0],
-                  [-np.sin(th_y), 0, np.cos(th_y)]])
+                  [-np.sin(th_y), 0, np.cos(th_y)]
+                  ]
+                )
   
   R_Z = np.array([[np.cos(th_z), -np.sin(th_z), 0],
                   [np.sin(th_z), np.cos(th_z), 0],
-                  [0, 0, 1]])
+                  [0, 0, 1]
+                  ]
+                )
   
   A_R_B = R_Y @ R_Z
   P_A = A_R_B @ P_B
@@ -53,15 +57,21 @@ def euler_to_ht(angles: np.ndarray, pos: np.ndarray) ->np.ndarray:
   # Create rotation matrices
   R_X = np.array([[1, 0, 0],
                   [0, np.cos(th_x), -np.sin(th_x)],
-                  [0, np.sin(th_x), np.cos(th_x)]])
+                  [0, np.sin(th_x), np.cos(th_x)]
+                  ]
+                )
 
   R_Y = np.array([[np.cos(th_y), 0, np.sin(th_y)],
                   [0, 1, 0],
-                  [-np.sin(th_y), 0, np.cos(th_y)]])
+                  [-np.sin(th_y), 0, np.cos(th_y)]
+                  ]
+                )
   
   R_Z = np.array([[np.cos(th_z), -np.sin(th_z), 0],
                   [np.sin(th_z), np.cos(th_z), 0],
-                  [0, 0, 1]])
+                  [0, 0, 1]
+                  ]
+                )
   
   # Z-Y_X rotation
   R = R_Z @ R_Y @ R_X
@@ -73,7 +83,7 @@ def euler_to_ht(angles: np.ndarray, pos: np.ndarray) ->np.ndarray:
 
   # Calculate the inverse transformation matrix
   T_inv = np.linalg.inv(T)
-  
+
   #T_inv = np.eye(4)
   #T_inv[0:3, 0:3] = R.T
   #T_inv[:3, 3] = -R.T @ p
