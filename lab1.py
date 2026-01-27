@@ -30,6 +30,7 @@ def rotate(P_B: np.ndarray) -> np.ndarray:
     ])
   
   A_R_B = R_Z @ R_Y
+  P_A = A_R_B @ P_B.T
   
   return P_A
 
