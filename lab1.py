@@ -62,7 +62,7 @@ def euler_to_ht(angles: np.ndarray, pos: np.ndarray) ->np.ndarray:
                   [np.sin(th_z), np.cos(th_z), 0],
                   [0, 0, 1]])
   
-  R = R_Z @ R_Y @ R_X
+  R = R_X @ R_Y @ R_Z
 
   A_T_B = np.eye(4)
   A_T_B[0:3, 0:3] = R
