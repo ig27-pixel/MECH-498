@@ -48,7 +48,7 @@ def euler_to_ht(angles: np.ndarray, pos: np.ndarray) ->np.ndarray:
   th_y = angles[1]
   th_z = angles[2]
 
-  p = np.array([pos[2], pos[1], pos[0]])
+  p = pos.reshape(3)
 
   # Create rotation matrices
   R_X = np.array([[1, 0, 0],
