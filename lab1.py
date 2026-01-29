@@ -153,7 +153,12 @@ def rpytf(values: np.ndarray) -> np.ndarray:
   Returns:
       np.ndarray: 4x4 Transformation Matrix 
   """
-  pass
+  R = rpyr(values[3:6])
+  T = np.eye(4)
+  T[0:3, 0:3] = R
+  T[0:3, 3] = values[0:3]
+  
+  return T
 
 
 def screw_tf(translation: float, rotation: float, ax: np.ndarray) -> np.ndarray:
