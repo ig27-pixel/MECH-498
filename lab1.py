@@ -93,7 +93,11 @@ def rollr(angle: float) -> np.ndarray:
   Returns:
       np.ndarray: 3x3 rotation matrix 
   """
-  pass
+  R = np.array([[1, 0, 0],
+                [0, np.cos(angle), -np.sin(angle)],
+                [0, np.sin(angle), np.cos(angle)]
+                ])
+  return R
 
 
 def pitchr(angle: float) -> np.ndarray:
@@ -104,7 +108,11 @@ def pitchr(angle: float) -> np.ndarray:
   Returns:
       np.ndarray: 3x3 rotation matrix 
   """
-  pass
+  R = np.array([[np.cos(angle), 0, np.sin(angle)],
+                [0, 1, 0],
+                [-np.sin(angle), 0, np.cos(angle)]
+                ])
+  return R
 
 
 def yawr(angle: float) -> np.ndarray:
@@ -115,7 +123,11 @@ def yawr(angle: float) -> np.ndarray:
   Returns:
       np.ndarray: 3x3 rotation matrix 
   """
-  pass
+  R = np.array([[np.cos(angle), -np.sin(angle), 0],
+                [np.sin(angle), np.cos(angle), 0],
+                [0, 0, 1]
+                ])
+  return R
 
 
 def rpyr(angles: np.ndarray) -> np.ndarray:
@@ -127,7 +139,9 @@ def rpyr(angles: np.ndarray) -> np.ndarray:
   Returns:
       np.ndarray: 3x3 rotaiton matrix
   """
-  pass
+  R = yawr(angles[2]) @ pitchr(angles[1]) @ rollr(angles[0])
+  
+  return R  
 
 
 def rpytf(values: np.ndarray) -> np.ndarray:
