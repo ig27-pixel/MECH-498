@@ -193,7 +193,6 @@ def screw_tf(translation: float, rotation: float, ax: np.ndarray) -> np.ndarray:
   return T
   
 
-
 def screw_dh(a: float, alpha: float, d: float, theta: float) -> np.ndarray:
   """Create a frame using the DH Parameters 
 
@@ -264,4 +263,10 @@ def actuator_to_joint(actuator_angles: np.ndarray) -> np.ndarray:
   ratio_2 = 10.0/113.0
   ratio_3 = 10/113.0
 
-  pass
+  # Calculate joint angles
+  th1 = ratio_1 * actuator_angles[0]
+  th2 = ratio_2 * (actuator_angles[1] - actuator_angles[0])
+  th3 = ratio_3 * (actuator_angles[2] - actuator_angles[1])
+  joint_angles = np.array([th1, th2, th3])
+  
+  return joint_angles
