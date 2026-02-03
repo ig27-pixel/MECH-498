@@ -230,7 +230,28 @@ def phantom_fk(joint_angles: np.ndarray,
   len_2 = 205
   len_3 = 170.0
 
-pass
+  # DH Parameters 3 R joints
+  T_0_1 = screw_dh(0, np.pi/2, len_1, joint_angles[0])
+  T_1_2 = screw_dh(len_2, 0, 0, joint_angles[1])
+  T_2_3 = screw_dh(len_3, 0, 0, joint_angles[2])
+  
+  # Wrist gimbal angles
+  T_3_e = screw_tf(0, -np.pi/2, np.array([1, 0, 0]))
+
+  # Gimabal rotations
+  T_e_g = np.eye(4)
+  T_e_g[0:3, 0:3] = rpyr(gimbal_angles)
+
+  # Full Transformation
+  phantom_T = np.array([T_0_1, T_1_2, T_2_3, T_3_e, T_e_g])
+
+  phantom_T_0_g = np.eye(4)
+  
+  for Ti in phantom_T:
+    phantom_T_0_g = phantom_T_0_g @ Ti
+
+
+  return (phantom_T_0_g, phantom_T) 
 
 
 def actuator_to_joint(actuator_angles: np.ndarray) -> np.ndarray:
