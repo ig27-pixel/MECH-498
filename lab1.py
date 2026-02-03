@@ -179,7 +179,7 @@ def screw_tf(translation: float, rotation: float, ax: np.ndarray) -> np.ndarray:
   c = np.cos(rotation)
   s = np.sin(rotation)
 
-  # Create the rotation matrix
+  # Create the rotation matrix using Equation 2.80 from textbook
   R = np.array([[c + a[0]**2 * (1 - c), a[0]*a[1]*(1 - c) - a[2]*s, a[0]*a[2]*(1 - c) + a[1]*s],
                 [a[1]*a[0]*(1 - c) + a[2]*s, c + a[1]**2 * (1 - c), a[1]*a[2]*(1 - c) - a[0]*s],
                 [a[2]*a[0]*(1 - c) - a[1]*s, a[2]*a[1]*(1 - c) + a[0]*s, c + a[2]**2 * (1 - c)]
@@ -206,8 +206,12 @@ def screw_dh(a: float, alpha: float, d: float, theta: float) -> np.ndarray:
   Returns:
       np.ndarray: _description_
   """
-
-  pass
+  # Create the transformation matrix using screw_dh
+  Tz = screw_tf(d, theta, np.array([0, 0, 1]))
+  Tx = screw_tf(a, alpha, np.array([1, 0, 0]))
+  T = Tz @ Tx
+  
+  return T
 
 
 def phantom_fk(joint_angles: np.ndarray,
