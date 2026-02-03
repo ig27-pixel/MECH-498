@@ -247,7 +247,7 @@ def phantom_fk(joint_angles: np.ndarray,
 
   phantom_T_0_g = T_0_1 @ T_1_2 @ T_2_3 @ T_3_e @ T_e_g
 
-  return phantom_T_0_g
+  return phantom_T_0_g, phantom_T
 
 
 def actuator_to_joint(actuator_angles: np.ndarray) -> np.ndarray:
