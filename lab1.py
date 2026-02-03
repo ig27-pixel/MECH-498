@@ -265,8 +265,9 @@ def actuator_to_joint(actuator_angles: np.ndarray) -> np.ndarray:
 
   # Calculate joint angles
   th1 = ratio_1 * actuator_angles[0]
-  th2 = ratio_2 * (actuator_angles[1] - actuator_angles[0])
-  th3 = ratio_3 * (actuator_angles[2] - actuator_angles[1])
-  joint_angles = np.array([th1, th2, th3])
+  th2 = ratio_2 * actuator_angles[1]
+  th3 = ratio_3 * actuator_angles[2] - th2
   
+  joint_angles = np.array([th1, th2, th3])
+
   return joint_angles
