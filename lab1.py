@@ -242,7 +242,7 @@ def phantom_fk(joint_angles: np.ndarray,
   T_e_g[0:3, 0:3] = rpyr(gimbal_angles)
 
   # Full Transformation
-  phantom_T = np.array([T_0_1, T_1_2, T_2_3, T_3_e, T_e_g], dtype=float)
+  phantom_T = np.array([T_0_1, T_0_1 @ T_1_2,  T_0_1 @ T_1_2 @ T_2_3, T_0_1 @ T_1_2 @ T_2_3 @ T_3_e, T_0_1 @ T_1_2 @ T_2_3 @ T_3_e @ T_e_g], dtype=float)
 
   phantom_T_0_g = T_0_1 @ T_1_2 @ T_2_3 @ T_3_e @ T_e_g
 
@@ -267,7 +267,7 @@ def actuator_to_joint(actuator_angles: np.ndarray) -> np.ndarray:
   th1 = ratio_1 * actuator_angles[0]
   th2 = ratio_2 * actuator_angles[1]
   th3 = ratio_3 * actuator_angles[2] - th2
-  
+
   joint_angles = np.array([th1, th2, th3])
 
   return joint_angles
