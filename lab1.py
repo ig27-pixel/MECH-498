@@ -172,7 +172,26 @@ def screw_tf(translation: float, rotation: float, ax: np.ndarray) -> np.ndarray:
   Returns:
       np.ndarray: 4x4 Transformation matrix 
   """
-  pass
+  # Normalize the axis
+  a = ax / np.linalg.norm(ax)
+
+  # Precompute cos and sin
+  c = np.cos(rotation)
+  s = np.sin(rotation)
+
+  # Create the rotation matrix
+  R = np.array([[c + a[0]**2 * (1 - c), a[0]*a[1]*(1 - c) - a[2]*s, a[0]*a[2]*(1 - c) + a[1]*s],
+                [a[1]*a[0]*(1 - c) + a[2]*s, c + a[1]**2 * (1 - c), a[1]*a[2]*(1 - c) - a[0]*s],
+                [a[2]*a[0]*(1 - c) - a[1]*s, a[2]*a[1]*(1 - c) + a[0]*s, c + a[2]**2 * (1 - c)]
+                ])
+   
+  # Create the transformation matrix
+  T = np.eye(4)
+  T[0:3, 0:3] = R
+  T[0:3, 3] = translation * a
+
+  return T
+  
 
 
 def screw_dh(a: float, alpha: float, d: float, theta: float) -> np.ndarray:
