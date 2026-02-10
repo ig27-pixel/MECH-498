@@ -238,7 +238,7 @@ def phantom_fk(joint_angles: np.ndarray,
   T_3_e = np.eye(4)
 
   # Gimabal rotations
-  T_e_g = rpytf(np.concatenate((np.zeros(3), gimbal_angles.flatten())))
+  T_e_g = rpytf(np.array([0, 0, 0, gimbal_angles[0], gimbal_angles[1], gimbal_angles[2]]))
 
   # Full Transformation
   phantom_T = np.array([T_0_1, T_1_2, T_2_3, T_3_e, T_e_g])
