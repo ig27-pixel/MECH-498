@@ -235,10 +235,10 @@ def phantom_fk(joint_angles: np.ndarray,
   T_2_3 = screw_dh(0, 0, 0, joint_angles[2])
 
   # Wrist gimbal angles
-  T_3_e = screw_dh(-5,0,0,0)
+  T_3_e = screw_dh(0,0,-5,0)
 
   # Gimabal rotations
-  T_e_g = rpytf(np.array([0, 0, 0, gimbal_angles[0], gimbal_angles[1], gimbal_angles[2]]))
+  T_e_g = rpytf(np.array([0,0,0,gimbal_angles[0],gimbal_angles[1],gimbal_angles[2]]))
 
   # Full Transformation
   phantom_T = np.array([T_0_1, T_1_2, T_2_3, T_3_e, T_e_g], dtype=float)
