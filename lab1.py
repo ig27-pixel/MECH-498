@@ -242,9 +242,9 @@ def phantom_fk(joint_angles: np.ndarray,
   T_e_g[0:3, 0:3] = rpyr(gimbal_angles)
 
   # Full Transformation
-  phantom_T = [T_0_1, T_1_2, T_2_3, T_3_e, T_e_g]
+  phantom_T = np.ndarray([T_0_1, T_1_2, T_2_3, T_3_e, T_e_g])
 
-  phantom_T_0_g = T_0_1 @ T_1_2 @ T_2_3 @ T_3_e @ T_e_g
+  phantom_T_0_g = np.ndarray(T_0_1 @ T_1_2 @ T_2_3 @ T_3_e @ T_e_g)
 
   return phantom_T_0_g, phantom_T
 
