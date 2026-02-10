@@ -241,7 +241,7 @@ def phantom_fk(joint_angles: np.ndarray,
   T_e_g = rpytf(np.array([0,0,0,gimbal_angles[0],gimbal_angles[1],gimbal_angles[2]]))
 
   # Full Transformation
-  phantom_T = np.array([T_0_1, T_1_2, T_2_3, T_3_e, T_e_g])
+  phantom_T = np.array([T_0_1, T_1_2, T_2_3, T_3_e, T_e_g], dtype=object)
 
   phantom_T_0_g = T_0_1 @ T_1_2 @ T_2_3 @ T_3_e @ T_e_g
 
