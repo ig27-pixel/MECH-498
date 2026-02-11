@@ -243,8 +243,7 @@ def phantom_fk(joint_angles: np.ndarray,
   # Full Transformation
   phantom_T_0_g = T_0_1 @ T_1_2 @ T_2_3 @ T_3_e @ T_e_g
 
-#   phantom_T = np.array([T_0_1, T_1_2, T_1_2, T_3_e, T_1_2])
-  phantom_T = np.array([np.eye(4),np.eye(4),np.eye(4),np.eye(4),np.eye(4)])
+  phantom_T = np.array([T_0_1, T_1_2, T_2_3, T_3_e, T_e_g])
 
   return phantom_T_0_g, phantom_T
 
@@ -272,7 +271,8 @@ def actuator_to_joint(actuator_angles: np.ndarray) -> np.ndarray:
 
   return joint_angles
 
-print(phantom_fk(np.array([0.,0.,0.]), np.array([0.,0.,0.])))
+# print(phantom_fk(np.array([0.,0.,0.]), np.array([0.,0.,0.])))
+
 # from lab1_utility import draw_screw, draw_phantom
 
 # if __name__ == "__main__":
