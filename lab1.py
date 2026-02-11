@@ -235,7 +235,7 @@ def phantom_fk(joint_angles: np.ndarray,
   T_2_3 = screw_dh(len_2, 0, 0, joint_angles[2])
 
   # Wrist gimbal angles
-  T_3_e = screw_dh(len_3, 0, 0, 0)
+  T_3_e = screw_dh(0, np.pi/2, -len_3, 0)
 
   # Gimabal rotations
   T_e_g = rpytf(np.array([0, 0, 0, gimbal_angles[0], gimbal_angles[1], gimbal_angles[2]]))
@@ -271,7 +271,7 @@ def actuator_to_joint(actuator_angles: np.ndarray) -> np.ndarray:
 
   return joint_angles
 
-print(phantom_fk(np.array([0.,0.,0.]), np.array([0.,0.,0.])))
+# print(phantom_fk(np.array([0.,0.,0.]), np.array([0.,0.,0.])))
 
 # from lab1_utility import draw_screw, draw_phantom
 
