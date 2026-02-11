@@ -208,7 +208,7 @@ def screw_dh(a: float, alpha: float, d: float, theta: float) -> np.ndarray:
   # Create the transformation matrix using screw_dh
   Tz = screw_tf(d, theta, np.array([0, 0, 1]))
   Tx = screw_tf(a, alpha, np.array([1, 0, 0]))
-  T = Tz @ Tx
+  T = Tx @ Tz
   
   return T
 
