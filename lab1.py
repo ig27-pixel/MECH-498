@@ -243,7 +243,8 @@ def phantom_fk(joint_angles: np.ndarray,
   # Full Transformation
   phantom_T_0_g = T_0_1 @ T_1_2 @ T_2_3 @ T_3_e @ T_e_g
 
-  phantom_T = np.array([T_1_2, T_1_2, T_1_2, T_1_2, T_1_2])
+#   phantom_T = np.array([T_0_1, T_1_2, T_1_2, T_3_e, T_1_2])
+  phantom_T = np.array([np.eye(4),np.eye(4),np.eye(4),np.eye(4),np.eye(4)])
 
   return phantom_T_0_g, phantom_T
 
