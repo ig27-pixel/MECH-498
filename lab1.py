@@ -271,15 +271,14 @@ def actuator_to_joint(actuator_angles: np.ndarray) -> np.ndarray:
 
   return joint_angles
 
-from lab1_utility import draw_screw, draw_phantom
-import numpy as np
+# from lab1_utility import draw_screw, draw_phantom
 
-if __name__ == "__main__":
-    # ---- Test draw_screw ----
-    axis = np.array([0, 0, 1])
-    draw_screw(translation=50, rotation=np.pi/4, ax=axis)
+# if __name__ == "__main__":
+#     # ---- Test draw_screw ----
+#     axis = np.array([0, 0, 1])
+#     draw_screw(translation=50, rotation=np.pi/4, ax=axis)
 
-    # ---- Test draw_phantom ----
-    joint_angles = np.array([0.2, 0.3, 0.1])
-    gimbal_angles = np.array([0.1, 0.2, 0.3])
-    draw_phantom(joint_angles, gimbal_angles)
+#     # ---- Test draw_phantom ----
+#     joint_angles = np.array([0.2, 0.3, 0.1])
+#     gimbal_angles = np.array([0.1, 0.2, 0.3])
+#     draw_phantom(joint_angles, gimbal_angles)
