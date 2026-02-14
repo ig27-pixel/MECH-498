@@ -1,7 +1,7 @@
 #Isaiah Gonzalez lab1.py
 
 import numpy as np
-#import PyKDL as kdl
+import PyKDL as kdl
 import math
 from typing import Tuple
 
