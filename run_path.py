@@ -1,6 +1,5 @@
 """
-Simple script to visualize the PHANToM robot moving through path.yaml
-For MECH 498 Lab 1 Part 8c
+MECH 498 Lab 1 Part 8c
 """
 
 import numpy as np
@@ -27,8 +26,8 @@ def load_path(filename):
 path_data = load_path('path.yaml')
 n_frames = path_data.shape[1]
 
-# Only use every 10th frame to keep file size reasonable
-step = 10
+# Only use every 5th frame to keep file size reasonable
+step = 5
 frames = list(range(0, n_frames, step))
 
 # Setup figure
