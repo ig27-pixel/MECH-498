@@ -1,4 +1,4 @@
-from .general_utility import *
+from .drawing_helper import *
 from .lab1_utility import *
 from .lab1 import *
 
