@@ -81,7 +81,12 @@ class Fanuc(object):
     """--------TODO------------"""
     ## TODO -- fill in fanuc physical parameters
     ## Fanuc link lengths in millimeters
-    self.a_1 = ...
+    self.a_1 = 0
+    self.a_2 = 0
+    self.a_3 = 180
+    self.a_4 = 0
+    self.a_5 = 0
+    self.a_5 = 0
     self.l_1_z = ...
     """^^^^^^^^^TODO^^^^^^^^^^^"""
 
