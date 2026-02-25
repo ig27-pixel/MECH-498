@@ -79,8 +79,6 @@ class Fanuc(object):
 
 
     """--------TODO------------"""
-    ## TODO -- fill in fanuc physical parameters
-    ## Fanuc link lengths in millimeters
     self.a_0 = 0
     self.a_1 = 300
     self.a_2 = 900
@@ -95,9 +93,7 @@ class Fanuc(object):
     self.l_6_z = 180
 
     """^^^^^^^^^TODO^^^^^^^^^^^"""
-
-    """--------TODO------------"""
-    ## TODO -- create the workspace boundaries. 
+    """--------TODO------------""" 
     self.workspace = Workspace(-3238,3238,-3238,3238,-3238,3238)
     """^^^^^^^^^TODO^^^^^^^^^^^"""
 
@@ -148,7 +144,6 @@ class Fanuc(object):
 
   def _setup_joints(self):
     """Use this area to initialize the joints.
-    TODO 
     I have provided the start of the first joint. You need to
     - fill in the limits for the first joint. 
     - fill in all of the information for the remaining joints. 
@@ -201,8 +196,6 @@ class Fanuc(object):
   def calculate_fk(self, joint_angles: np.ndarray):
     """Calculate the forward kinematics of the fanuc. 
 
-    TODO 
-
     In this function, you need to load the joint DH parameters into each joint. 
     This will then allow you to call self.ee_frame to get the final output 
     frame of the robot, or do any math using joint_X.dh_transform. 
@@ -218,10 +211,22 @@ class Fanuc(object):
         ValueError: if the joint angles are out of range
     """
 
-    self._joint_1.set_theta(...)
-    ...
+    # Load the joint angles into the joints
+    self._joint_1.set_theta(joint_angles[0])
+    self._joint_2.set_theta(joint_angles[1])
+    self._joint_3.set_theta(joint_angles[2])
+    self._joint_4.set_theta(joint_angles[3])
+    self._joint_5.set_theta(joint_angles[4])
+    self._joint_6.set_theta(joint_angles[5])
 
-    self._ee_frame = ...
+    # Chain the transforms together to get the final end effector frame.
+    T = self._base_frame.dh_transform
+    for joint in self.joints:
+      T = T @ joint.dh_transform
+
+    self._ee_frame = T
+    return self._ee_frame
+    
 
 
   def calculate_ik(self, ee_frame: np.ndarray,
