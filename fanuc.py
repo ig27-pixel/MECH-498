@@ -212,11 +212,9 @@ class Fanuc(object):
     """
 
     # Joint limits check
-    for index, joint in enumerate(self.joints):
-      if joint_angles[index] < joint.joint_min or joint_angles[index] > joint.joint_max:
-        raise ValueError(
-            f"Joint {index+1} angle {joint_angles[index]} is out of range [{joint.joint_min}, {joint.joint_max}]"
-        )
+    for i, (joint, theta) in enumerate(zip(self.joints, joint_angles), start=1):
+        if not joint.is_inside_joint_limit(float(theta)):
+            raise ValueError(f"Joint {i} angle {theta} is out of range")
       
     # Load the joint angles into the joints
     self._joint_1.set_theta(joint_angles[0])
