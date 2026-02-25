@@ -213,7 +213,7 @@ class Fanuc(object):
 
     # Load the joint angles into the joints
     self._joint_1.set_theta(joint_angles[0])
-    self._joint_2.set_theta(joint_angles[1])
+    self._joint_2.set_theta(joint_angles[1] - (np.pi/2))
     self._joint_3.set_theta(joint_angles[2])
     self._joint_4.set_theta(joint_angles[3])
     self._joint_5.set_theta(joint_angles[4])
