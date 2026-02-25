@@ -81,23 +81,24 @@ class Fanuc(object):
     """--------TODO------------"""
     ## TODO -- fill in fanuc physical parameters
     ## Fanuc link lengths in millimeters
+    self.a_0 = 0
     self.a_1 = 300
-    self.a_2 = 0
+    self.a_2 = 900
     self.a_3 = 180
     self.a_4 = 0
     self.a_5 = 0
     self.l_1_z = 0
     self.l_2_z = 1000
-    self.l_3_z = 900
-    self.l_4_z = 0
-    self.l_5_z = 1600
-    self.l_6_z = 180
+    self.l_3_z = 0
+    self.l_4_z = 1600
+    self.l_5_z = 0
+    self.l_6_z = 0
 
     """^^^^^^^^^TODO^^^^^^^^^^^"""
 
     """--------TODO------------"""
     ## TODO -- create the workspace boundaries. 
-    self.workspace = Workspace(-3238,3238,-3238,3238,-500,3238)
+    self.workspace = Workspace(-3238,3238,-3238,3238,-3238,3238)
     """^^^^^^^^^TODO^^^^^^^^^^^"""
 
 
@@ -157,38 +158,38 @@ class Fanuc(object):
 
     self._joint_1 = Joint(self.ax, self.colors[0])
     self._joint_1.set_joint_limits(math.radians(-150), math.radians(150))
-    self._joint_1.set_dh_value_a(0)
-    self._joint_1.set_dh_value_alpha(0)
+    self._joint_1.set_dh_value_a(self.a_0)
+    self._joint_1.set_dh_value_alpha(self.l_1_z)
     self._joint_1.set_dh_value_d(0)
 
     self._joint_2 = Joint(self.ax, self.colors[0])
     self._joint_2.set_joint_limits(math.radians(-80), math.radians(80))
-    self._joint_2.set_dh_value_a(self.a_2)
-    self._joint_2.set_dh_value_alpha(math.radians(90))
+    self._joint_2.set_dh_value_a(self.a_1)
+    self._joint_2.set_dh_value_alpha(math.radians(-90))
     self._joint_2.set_dh_value_d(self.l_2_z)
 
     self._joint_3 = Joint(self.ax, self.colors[0])
     self._joint_3.set_joint_limits(math.radians(-80), math.radians(80))
-    self._joint_3.set_dh_value_a(self.a_3)
+    self._joint_3.set_dh_value_a(self.a_2)
     self._joint_3.set_dh_value_alpha(math.radians(0))
     self._joint_3.set_dh_value_d(self.l_3_z)
 
     self._joint_4 = Joint(self.ax, self.colors[0])
-    self._joint_4.set_joint_limits(math.radians(-180), math.radians(180))
-    self._joint_4.set_dh_value_a(self.a_4)
-    self._joint_4.set_dh_value_alpha(math.radians(90))
+    self._joint_4.set_joint_limits(math.radians(-240), math.radians(240))
+    self._joint_4.set_dh_value_a(self.a_3)
+    self._joint_4.set_dh_value_alpha(math.radians(-90))
     self._joint_4.set_dh_value_d(self.l_4_z)
 
     self._joint_5 = Joint(self.ax, self.colors[0])
     self._joint_5.set_joint_limits(math.radians(-120), math.radians(120))
-    self._joint_5.set_dh_value_a(self.a_5)
-    self._joint_5.set_dh_value_alpha(math.radians(-90))
+    self._joint_5.set_dh_value_a(self.a_4)
+    self._joint_5.set_dh_value_alpha(math.radians(90))
     self._joint_5.set_dh_value_d(self.l_5_z)
 
     self._joint_6 = Joint(self.ax, self.colors[0])
-    self._joint_6.set_joint_limits(math.radians(-180), math.radians(180))
-    self._joint_6.set_dh_value_a(self.a_6)
-    self._joint_6.set_dh_value_alpha(math.radians(90))
+    self._joint_6.set_joint_limits(math.radians(-450), math.radians(450))
+    self._joint_6.set_dh_value_a(self.a_5)
+    self._joint_6.set_dh_value_alpha(math.radians(-90))
     self._joint_6.set_dh_value_d(self.l_6_z)
     # Note -- math.radians(value) will convert the degree input "value" into radians
     ... # next do joints 2 thru 6
