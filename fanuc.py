@@ -67,7 +67,7 @@ class Fanuc(object):
     Returns:
         np.ndarray: (4,4) of the final location of the end effector. 
     """
-    return self.ee_frame
+    return self._ee_frame
 
   def __init__(self, drawing_enabled: bool = True):
     """Initialize the class """
@@ -75,7 +75,7 @@ class Fanuc(object):
     self._joints = []
     self._drawn_once = False
     self._drawing_enabled = drawing_enabled
-    self.ee_frame = np.eye(4)
+    self._ee_frame = np.eye(4)
 
 
     """--------TODO------------"""
