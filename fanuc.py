@@ -85,6 +85,7 @@ class Fanuc(object):
     self.a_3 = 180
     self.a_4 = 0
     self.a_5 = 0
+    
     self.l_1_z = 0
     self.l_2_z = 0
     self.l_3_z = 0
