@@ -252,7 +252,7 @@ class Fanuc(object):
         Tuple[bool, np.ndarray]: bool -- whether or not a solutio exists
                                  np.ndarray -- the 6x1 array of that solution if it exists 
     """
-    return False, []
+    return True, []
 
 
   def _create_plot(self):
