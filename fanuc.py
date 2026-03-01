@@ -314,4 +314,3 @@ class Fanuc(object):
     self.brush.paint()
 
     plt.pause(0.0001)
-
