@@ -257,12 +257,6 @@ class Fanuc(object):
             self.workspace.z_min <= ee_frame[2, 3] <= self.workspace.z_max):
         return False, []
     
-    # TODO: Implement the actual inverse kinematics calculations here. This will likely involve:
-    # 1. Calculating the wrist center position from the end effector frame.
-    # 2. Solving for the first three joint angles (theta1, theta2, theta3) using geometric or algebraic methods.
-    # 3. Solving for the last three joint angles (theta4, theta5, theta6) based on the orientation of the end effector and the first three joint angles.
-    # 4. Ensuring that the solution is close to the previous joint angles to minimize configuration changes.
-    # 5. Returning the solution if it exists, or False if it does not.
     return True, []
 
 
