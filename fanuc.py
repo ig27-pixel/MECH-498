@@ -237,7 +237,6 @@ class Fanuc(object):
   def calculate_ik(self, ee_frame: np.ndarray,
                     prev_joint_angles: np.ndarray) -> Tuple[bool, np.ndarray]:
     """calculate the inverse kinematics of the fanuc
-    TODO
     This is the hard part of the whole thing. If you get this working, it's all downhill.
     Be careful, the devil is in the details. Be sure to include all solution cases. 
     Be sure to not make large leaps in configuration. 
