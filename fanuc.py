@@ -262,11 +262,11 @@ class Fanuc(object):
     for i, joint in enumerate(self.joints):
       q[i] = np.clip(q[i], joint.low_limit, joint.high_limit)
 
-    # Iterative IK (Gauss-Newton with damping) to match ee_frame.
+    # Iterative IK to match ee_frame.
     for _ in range(300):
       T = self.calculate_fk(q)
 
-      # Task-space error: translation and small-angle orientation error.
+      # Calculate the error in position and orientation.
       pos_err = ee_frame[:3, 3] - T[:3, 3]
       R_err = ee_frame[:3, :3] @ T[:3, :3].T
       rot_err = 0.5 * np.array([
@@ -276,11 +276,11 @@ class Fanuc(object):
       ])
       err = np.hstack((pos_err, rot_err))
 
-      # Converged.
+      # If the error is small enough, we have found a solution.
       if np.linalg.norm(pos_err) < 1e-3 and np.linalg.norm(rot_err) < 1e-4:
         break
 
-      # Numerical Jacobian from finite differences.
+      # Compute the Jacobian numerically.
       J = np.zeros((6, 6))
       for i, joint in enumerate(self.joints):
         step = 1e-5
@@ -305,11 +305,11 @@ class Fanuc(object):
       dq = np.linalg.solve(J.T @ J + 1e-4 * np.eye(6), J.T @ err)
       q = q + dq
 
-      # Respect joint limits every iteration.
+      # Ensure joint limits are respected after each update.
       for i, joint in enumerate(self.joints):
         q[i] = np.clip(q[i], joint.low_limit, joint.high_limit)
 
-    # Final verification.
+    # Final check to ensure the solution is valid.
     T = self.calculate_fk(q)
     pos_err = ee_frame[:3, 3] - T[:3, 3]
     R_err = ee_frame[:3, :3] @ T[:3, :3].T
