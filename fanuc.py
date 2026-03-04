@@ -255,9 +255,74 @@ class Fanuc(object):
     if not (self.workspace.x_min <= ee_frame[0, 3] <= self.workspace.x_max and
             self.workspace.y_min <= ee_frame[1, 3] <= self.workspace.y_max and
             self.workspace.z_min <= ee_frame[2, 3] <= self.workspace.z_max):
-        return False, []
+      return False, []
     
-    return True, []
+    # Initialize q with the previous joint angles, ensuring they are within limits.
+    q = prev_joint_angles.copy()
+    for i, joint in enumerate(self.joints):
+      q[i] = np.clip(q[i], joint.low_limit, joint.high_limit)
+
+    # Iterative IK (Gauss-Newton with damping) to match ee_frame.
+    for _ in range(300):
+      T = self.calculate_fk(q)
+
+      # Task-space error: translation and small-angle orientation error.
+      pos_err = ee_frame[:3, 3] - T[:3, 3]
+      R_err = ee_frame[:3, :3] @ T[:3, :3].T
+      rot_err = 0.5 * np.array([
+          R_err[2, 1] - R_err[1, 2],
+          R_err[0, 2] - R_err[2, 0],
+          R_err[1, 0] - R_err[0, 1],
+      ])
+      err = np.hstack((pos_err, rot_err))
+
+      # Converged.
+      if np.linalg.norm(pos_err) < 1e-3 and np.linalg.norm(rot_err) < 1e-4:
+        break
+
+      # Numerical Jacobian from finite differences.
+      J = np.zeros((6, 6))
+      for i, joint in enumerate(self.joints):
+        step = 1e-5
+        if q[i] + step > joint.high_limit:
+          step = -step if q[i] - step >= joint.low_limit else 0.0
+        if step == 0.0:
+          continue
+
+        qd = q.copy()
+        qd[i] += step
+        Td = self.calculate_fk(qd)
+
+        dpos = (Td[:3, 3] - T[:3, 3]) / step
+        Rd = Td[:3, :3] @ T[:3, :3].T
+        drot = 0.5 * np.array([
+            Rd[2, 1] - Rd[1, 2],
+            Rd[0, 2] - Rd[2, 0],
+            Rd[1, 0] - Rd[0, 1],
+        ]) / step
+        J[:, i] = np.hstack((dpos, drot))
+
+      dq = np.linalg.solve(J.T @ J + 1e-4 * np.eye(6), J.T @ err)
+      q = q + dq
+
+      # Respect joint limits every iteration.
+      for i, joint in enumerate(self.joints):
+        q[i] = np.clip(q[i], joint.low_limit, joint.high_limit)
+
+    # Final verification.
+    T = self.calculate_fk(q)
+    pos_err = ee_frame[:3, 3] - T[:3, 3]
+    R_err = ee_frame[:3, :3] @ T[:3, :3].T
+    rot_err = 0.5 * np.array([
+        R_err[2, 1] - R_err[1, 2],
+        R_err[0, 2] - R_err[2, 0],
+        R_err[1, 0] - R_err[0, 1],
+    ])
+
+    if np.linalg.norm(pos_err) > 2e-3 or np.linalg.norm(rot_err) > 2e-3:
+      return False, []
+
+    return True, q
 
 
   def _create_plot(self):
