@@ -67,7 +67,8 @@ class Fanuc(object):
     Returns:
         np.ndarray: (4,4) of the final location of the end effector. 
     """
-    return self._ee_frame
+    ee_frame_temp = self._joint_1.dh_transform @ self._joint_2.dh_transform @ self._joint_3.dh_transform @ self._joint_4.dh_transform @ self._joint_5.dh_transform @ self._joint_6.dh_transform
+    return ee_frame_temp
 
   def __init__(self, drawing_enabled: bool = True):
     """Initialize the class """
@@ -230,8 +231,8 @@ class Fanuc(object):
     for joint in self.joints:
       T = T @ joint.dh_transform
 
-    self._ee_frame = T
-    return self._ee_frame
+    self.ee_frame = T
+    return self.ee_frame
     
 
   def calculate_ik(self, ee_frame: np.ndarray,
@@ -394,8 +395,6 @@ class Fanuc(object):
       return False, []
 
     return True, best_sol
-
-
 
 
   def _create_plot(self):
