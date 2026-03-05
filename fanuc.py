@@ -256,71 +256,17 @@ class Fanuc(object):
             self.workspace.y_min <= ee_frame[1, 3] <= self.workspace.y_max and
             self.workspace.z_min <= ee_frame[2, 3] <= self.workspace.z_max):
       return False, []
+    
+    # Initialize q with the previous joint angles, ensuring they are within limits.
+    q = prev_joint_angles.copy()
+    for i, joint in enumerate(self.joints):
+      q[i] = np.clip(q[i], joint.low_limit, joint.high_limit)
 
-    # Generate multiple seeds for the IK solver, starting with the previous joint angles and then adding random perturbations.
-    seeds = [prev_joint_angles.copy()]
-    np.random.seed(42)
-    for _ in range(8):
-      perturb = prev_joint_angles.copy() + np.random.uniform(-0.3, 0.3, 6)
-      seeds.append(perturb)
-
-    valid_solutions = []
-
-    for seed in seeds:
-      # Ensure the seed respects joint limits before starting the IK iterations.
-      q = seed.copy()
-      for i, joint in enumerate(self.joints):
-        q[i] = np.clip(q[i], joint.low_limit, joint.high_limit)
-
-      # Iterative IK to match ee_frame.
-      for _ in range(300):
-        T = self.calculate_fk(q)
-
-        # Calculate the error in position and orientation. For orientation, we can use the rotation matrix difference.
-        pos_err = ee_frame[:3, 3] - T[:3, 3]
-        R_err = ee_frame[:3, :3] @ T[:3, :3].T
-        rot_err = 0.5 * np.array([
-            R_err[2, 1] - R_err[1, 2],
-            R_err[0, 2] - R_err[2, 0],
-            R_err[1, 0] - R_err[0, 1],
-        ])
-        err = np.hstack((pos_err, rot_err))
-
-        # If the error is small enough, we can consider this a valid solution.
-        if np.linalg.norm(pos_err) < 1e-3 and np.linalg.norm(rot_err) < 1e-4:
-          break
-
-        # Compute the Jacobian numerically by perturbing each joint and observing the change in end effector position and orientation.
-        J = np.zeros((6, 6))
-        for i, joint in enumerate(self.joints):
-          step = 1e-5
-          if q[i] + step > joint.high_limit:
-            step = -step if q[i] - step >= joint.low_limit else 0.0
-          if step == 0.0:
-            continue
-
-          qd = q.copy()
-          qd[i] += step
-          Td = self.calculate_fk(qd)
-
-          dpos = (Td[:3, 3] - T[:3, 3]) / step
-          Rd = Td[:3, :3] @ T[:3, :3].T
-          drot = 0.5 * np.array([
-              Rd[2, 1] - Rd[1, 2],
-              Rd[0, 2] - Rd[2, 0],
-              Rd[1, 0] - Rd[0, 1],
-          ]) / step
-          J[:, i] = np.hstack((dpos, drot))
-
-        dq = np.linalg.solve(J.T @ J + 1e-4 * np.eye(6), J.T @ err)
-        q = q + dq
-
-        # Clip the joint angles to their limits after each update.
-        for i, joint in enumerate(self.joints):
-          q[i] = np.clip(q[i], joint.low_limit, joint.high_limit)
-
-      # After the iterations, check if the solution is valid by comparing the final end effector frame to the desired frame.
+    # Iterative IK to match ee_frame.
+    for _ in range(300):
       T = self.calculate_fk(q)
+
+      # Calculate the error in position and orientation.
       pos_err = ee_frame[:3, 3] - T[:3, 3]
       R_err = ee_frame[:3, :3] @ T[:3, :3].T
       rot_err = 0.5 * np.array([
@@ -328,16 +274,55 @@ class Fanuc(object):
           R_err[0, 2] - R_err[2, 0],
           R_err[1, 0] - R_err[0, 1],
       ])
+      err = np.hstack((pos_err, rot_err))
 
-      if np.linalg.norm(pos_err) <= 2e-3 and np.linalg.norm(rot_err) <= 2e-3:
-        valid_solutions.append(q.copy())
+      # If the error is small enough, we have found a solution.
+      if np.linalg.norm(pos_err) < 1e-3 and np.linalg.norm(rot_err) < 1e-4:
+        break
 
-    if not valid_solutions:
+      # Compute the Jacobian numerically.
+      J = np.zeros((6, 6))
+      for i, joint in enumerate(self.joints):
+        step = 1e-5
+        if q[i] + step > joint.high_limit:
+          step = -step if q[i] - step >= joint.low_limit else 0.0
+        if step == 0.0:
+          continue
+
+        qd = q.copy()
+        qd[i] += step
+        Td = self.calculate_fk(qd)
+
+        dpos = (Td[:3, 3] - T[:3, 3]) / step
+        Rd = Td[:3, :3] @ T[:3, :3].T
+        drot = 0.5 * np.array([
+            Rd[2, 1] - Rd[1, 2],
+            Rd[0, 2] - Rd[2, 0],
+            Rd[1, 0] - Rd[0, 1],
+        ]) / step
+        J[:, i] = np.hstack((dpos, drot))
+
+      dq = np.linalg.solve(J.T @ J + 1e-4 * np.eye(6), J.T @ err)
+      q = q + dq
+
+      # Ensure joint limits are respected after each update.
+      for i, joint in enumerate(self.joints):
+        q[i] = np.clip(q[i], joint.low_limit, joint.high_limit)
+
+    # Final check to ensure the solution is valid.
+    T = self.calculate_fk(q)
+    pos_err = ee_frame[:3, 3] - T[:3, 3]
+    R_err = ee_frame[:3, :3] @ T[:3, :3].T
+    rot_err = 0.5 * np.array([
+        R_err[2, 1] - R_err[1, 2],
+        R_err[0, 2] - R_err[2, 0],
+        R_err[1, 0] - R_err[0, 1],
+    ])
+
+    if np.linalg.norm(pos_err) > 2e-3 or np.linalg.norm(rot_err) > 2e-3:
       return False, []
 
-    # Select the solution that is closest to the previous joint angles to minimize configuration changes.
-    best = min(valid_solutions, key=lambda s: np.linalg.norm(s - prev_joint_angles))
-    return True, best
+    return True, q
 
 
   def _create_plot(self):
