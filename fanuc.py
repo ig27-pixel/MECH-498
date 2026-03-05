@@ -276,6 +276,7 @@ class Fanuc(object):
     z = zw
 
     L3 = math.sqrt(a3**2 + d4**2)
+    phi = math.atan2(d4, a3)
 
     # Calculate q3 using the law of cosines
     D = (r**2 + z**2 - a2**2 - L3**2)/(2*a2*L3)
@@ -288,7 +289,7 @@ class Fanuc(object):
       q3 = s*math.acos(D)
 
       beta = math.atan2(z,r)
-      alpha = math.atan2(L3*math.sin(q3), a2+L3*math.cos(q3))
+      alpha = math.atan2(L3*math.sin(q3), a2+L3*math.cos(q3 + phi))
 
       q2 = beta - alpha + math.pi/2
 
