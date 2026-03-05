@@ -67,7 +67,11 @@ class Fanuc(object):
     Returns:
         np.ndarray: (4,4) of the final location of the end effector. 
     """
-    return self._ee_frame
+    ee_frame_temp = (self._joint_1.dh_transform @ self._joint_2.dh_transform @
+                     self._joint_3.dh_transform @ self._joint_4.dh_transform @
+                     self._joint_5.dh_transform @ self._joint_6.dh_transform)
+    return ee_frame_temp
+
 
   def __init__(self, drawing_enabled: bool = True):
     """Initialize the class """
@@ -225,13 +229,7 @@ class Fanuc(object):
     self._joint_5.set_theta(joint_angles[4])
     self._joint_6.set_theta(joint_angles[5])
 
-    # Chain the transforms together to get the final end effector frame.
-    T = self._base_frame.dh_transform
-    for joint in self.joints:
-      T = T @ joint.dh_transform
-
-    self._ee_frame = T
-    return self._ee_frame
+    return self.ee_frame
     
 
   def calculate_ik(self, ee_frame: np.ndarray,
