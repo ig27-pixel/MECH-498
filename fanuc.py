@@ -260,121 +260,80 @@ class Fanuc(object):
     R06 = ee_frame[:3, :3]
     p06 = ee_frame[:3, 3]
 
-    a1, a2, a3 = float(self.a_1), float(self.a_2), float(self.a_3)
-    d4, d6 = float(self.l_4_z), float(self.l_6_z)
+    a1, a2, a3 = self.a_1, self.a_2, self.a_3
+    d4, d6 = self.l_4_z, self.l_6_z
 
     pw = p06 - d6 * (R06 @ np.array([0.0, 0.0, 1.0]))
     xw, yw, zw = float(pw[0]), float(pw[1]), float(pw[2])
 
-    q1 = math.atan2(yw, xw)
+    q1_base = math.atan2(yw, xw)
 
+    L3 = math.sqrt(a3 * a3 + d4 * d4)
     r = math.sqrt(xw * xw + yw * yw) - a1
     z = zw
 
-    L3 = math.sqrt(a3 * a3 + d4 * d4)
-    phi = math.atan2(d4, a3)
-
     D = (r * r + z * z - a2 * a2 - L3 * L3) / (2.0 * a2 * L3)
+    if D < -1.0 - 1e-9 or D > 1.0 + 1e-9:
+      return False, []
     D = float(np.clip(D, -1.0, 1.0))
 
-    lows = np.array([j.low_limit for j in self.joints], dtype=float)
-    highs = np.array([j.high_limit for j in self.joints], dtype=float)
-    two_pi = 2.0 * math.pi
+    solutions = []
 
-    best_q = None
-    best_score = float("inf")
+    for q1 in [q1_base, q1_base + math.pi, q1_base - math.pi]:
+      for elbow in [1.0, -1.0]:
+        q3p = elbow * math.acos(D)
 
-    for s in (1.0, -1.0):
+        beta = math.atan2(z, r)
+        alpha = math.atan2(L3 * math.sin(q3p), a2 + L3 * math.cos(q3p))
+        q2 = beta - alpha + math.pi / 2.0
 
-      q3 = s * math.acos(D) - phi
+        T01 = Joint.dh_tf(0.0, 0.0, 0.0, q1)
+        T12 = Joint.dh_tf(-math.pi / 2.0, a1, 0.0, q2 - math.pi / 2.0)
+        T23 = Joint.dh_tf(0.0, a2, 0.0, q3p)
+        R03 = (T01 @ T12 @ T23)[:3, :3]
+        R36 = R03.T @ R06
 
-      beta = math.atan2(z, r)
-      alpha = math.atan2(L3 * math.sin(q3 + phi), a2 + L3 * math.cos(q3 + phi))
+        c5 = -float(R36[2, 1])
+        s5 = math.sqrt(float(R36[0, 1])**2 + float(R36[1, 1])**2)
 
-      q2 = beta - alpha + (math.pi / 2.0)
+        for sgn in [1.0, -1.0]:
+          q5 = math.atan2(sgn * s5, c5)
 
-      T01 = Joint.dh_tf(0.0, 0.0, 0.0, q1)
-      T12 = Joint.dh_tf(-math.pi / 2.0, a1, 0.0, q2 - math.pi / 2.0)
-      T23 = Joint.dh_tf(0.0, a2, 0.0, q3)
-
-      R03 = (T01 @ T12 @ T23)[:3, :3]
-      R36 = R03.T @ R06
-
-      c5 = -float(R36[2, 1])
-      c5 = float(np.clip(c5, -1.0, 1.0))
-      q5a = math.acos(c5)
-
-      def wrap_near_prev(qcand: np.ndarray) -> np.ndarray:
-        qout = qcand.copy()
-        for i in range(6):
-          k = int(np.round((prev_joint_angles[i] - qout[i]) / two_pi))
-          best = None
-          best_d = float("inf")
-          for kk in (k, k - 1, k + 1):
-            c = qout[i] + kk * two_pi
-            if lows[i] <= c <= highs[i]:
-              d = abs(c - prev_joint_angles[i])
-              if d < best_d:
-                best_d = d
-                best = c
-          if best is not None:
-            qout[i] = best
+          if abs(s5) < 1e-9:
+            q4 = float(prev_joint_angles[3])
+            q6 = math.atan2(float(R36[1, 0]), float(R36[0, 0]))
           else:
-            qout[i] = float(np.clip(qout[i], lows[i], highs[i]))
-        return qout
+            q4 = math.atan2(-float(R36[1, 1]) / (sgn * s5), -float(R36[0, 1]) / (sgn * s5))
+            q6 = math.atan2(float(R36[2, 2]) / (sgn * s5), -float(R36[2, 0]) / (sgn * s5))
 
-      wrist_candidates = []
-      if abs(math.sin(q5a)) < 1e-6:
-        q4a = math.atan2(float(R36[1, 0]), float(R36[0, 0]))
-        q6a = 0.0
-        wrist_candidates.append((q4a, q5a, q6a))
-      else:
-        q4a = math.atan2(float(R36[1, 1]), float(R36[0, 1]))
-        q6a = math.atan2(float(R36[2, 2]), -float(R36[2, 0]))
-        wrist_candidates.append((q4a, q5a, q6a))
-        wrist_candidates.append((q4a + math.pi, -q5a, q6a + math.pi))
+          q = np.array([q1, q2, q3p, q4, q5, q6], dtype=float)
 
-      for (q4, q5, q6) in wrist_candidates:
-        q = np.array([q1, q2, q3, q4, q5, q6], dtype=float)
-        q = wrap_near_prev(q)
+          for i, joint in enumerate(self.joints):
+            lo, hi = float(joint.low_limit), float(joint.high_limit)
+            while q[i] < lo:
+              q[i] += 2.0 * math.pi
+            while q[i] > hi:
+              q[i] -= 2.0 * math.pi
+            if q[i] < lo - 1e-9 or q[i] > hi + 1e-9:
+              q = None
+              break
 
-        try:
-          T = self.calculate_fk(q)
-        except ValueError:
-          continue
+          if q is None:
+            continue
 
-        pos_err = np.linalg.norm(T[:3, 3] - p06)
+          try:
+            Tchk = self.calculate_fk(q)
+          except Exception:
+            continue
 
-        Rerr = ee_frame[:3, :3] @ T[:3, :3].T
-        tr = float(np.trace(Rerr))
-        cang = float(np.clip((tr - 1.0) / 2.0, -1.0, 1.0))
-        ang_err = math.acos(cang)
+          if np.linalg.norm(Tchk[:3, 3] - ee_frame[:3, 3]) < 1e-3 and np.linalg.norm(Tchk[:3, :3] - ee_frame[:3, :3]) < 1e-3:
+            solutions.append(q)
 
-        near = np.linalg.norm(q - prev_joint_angles)
-        score = 1e6 * pos_err + 1e4 * ang_err + near
-
-        if score < best_score:
-          best_score = score
-          best_q = q
-
-    if best_q is None:
+    if not solutions:
       return False, []
 
-    try:
-      T = self.calculate_fk(best_q)
-    except ValueError:
-      return False, []
-
-    pos_err = np.linalg.norm(T[:3, 3] - p06)
-    Rerr = ee_frame[:3, :3] @ T[:3, :3].T
-    tr = float(np.trace(Rerr))
-    cang = float(np.clip((tr - 1.0) / 2.0, -1.0, 1.0))
-    ang_err = math.acos(cang)
-
-    if pos_err < 2e-2 and ang_err < 2e-2:
-      return True, best_q
-
-    return False, []
+    best = min(solutions, key=lambda x: float(np.linalg.norm(x - prev_joint_angles)))
+    return True, best
 
 
 
