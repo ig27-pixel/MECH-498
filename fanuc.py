@@ -276,7 +276,6 @@ class Fanuc(object):
     z = zw
 
     L3 = math.sqrt(a3**2 + d4**2)
-    phi = math.atan2(d4, a3)
 
     # Calculate q3 using the law of cosines
     D = (r**2 + z**2 - a2**2 - L3**2)/(2*a2*L3)
@@ -286,38 +285,58 @@ class Fanuc(object):
 
     # There are two solutions for q3 due to the elbow up/down configuration.
     for s in [1,-1]:
-      q3 = s*math.acos(D) - phi
+
+      q3 = s*math.acos(D)
 
       beta = math.atan2(z,r)
-      alpha = math.atan2(L3*math.sin(q3), a2+L3*math.cos(q3 + phi))
+      alpha = math.atan2(L3*math.sin(q3), a2+L3*math.cos(q3))
 
       q2 = beta - alpha + math.pi/2
 
-      # compute R03
-      T01 = Joint.dh_tf(0,0,0,q1)
-      T12 = Joint.dh_tf(-math.pi/2,a1,0,q2-math.pi/2)
-      T23 = Joint.dh_tf(0,a2,0,q3)
+      # initial wrist guess from previous pose
+      q4,q5,q6 = prev_joint_angles[3:]
 
-      R03 = (T01@T12@T23)[:3,:3]
+      # refine wrist orientation numerically
+      for _ in range(50):
 
-      R36 = R03.T @ R06
+        q = np.array([q1,q2,q3,q4,q5,q6])
 
-      # wrist angles
-      q5 = math.atan2(math.sqrt(R36[0,2]**2 + R36[2,2]**2), R36[1,2])
+        try:
+          T = self.calculate_fk(q)
+        except:
+          break
 
-      if abs(math.sin(q5)) < 1e-6:
-        q4 = 0
-        q6 = math.atan2(-R36[0,1],R36[0,0])
-      else:
-        q4 = math.atan2(R36[2,2],-R36[0,2])
-        q6 = math.atan2(-R36[1,1],R36[1,0])
+        R_err = ee_frame[:3,:3] @ T[:3,:3].T
+
+        rot_err = 0.5*np.array([
+            R_err[2,1]-R_err[1,2],
+            R_err[0,2]-R_err[2,0],
+            R_err[1,0]-R_err[0,1]
+        ])
+
+        if np.linalg.norm(rot_err) < 1e-5:
+          break
+
+        q4 += rot_err[0]
+        q5 += rot_err[1]
+        q6 += rot_err[2]
 
       q = np.array([q1,q2,q3,q4,q5,q6])
 
       try:
         T = self.calculate_fk(q)
-        if np.linalg.norm(T[:3,3]-p06) < 1e-3:
+
+        pos_err = np.linalg.norm(T[:3,3]-p06)
+        R_err = ee_frame[:3,:3] @ T[:3,:3].T
+        rot_err = np.linalg.norm([
+            R_err[2,1]-R_err[1,2],
+            R_err[0,2]-R_err[2,0],
+            R_err[1,0]-R_err[0,1]
+        ])
+
+        if pos_err < 1e-3 and rot_err < 1e-3:
           solutions.append(q)
+
       except:
         pass
 
