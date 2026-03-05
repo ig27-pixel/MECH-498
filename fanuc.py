@@ -259,17 +259,19 @@ class Fanuc(object):
     p_ee     = ee_frame[:3, 3]
 
     # DH parameters
-    a1, a2, a3, d4, d6 = 300, 900, 180, 1600, 180
+    a1, a2, a3, d4, d6 = self.a_1, self.a_2, self.a_3, self.l_4_z, self.l_6_z
 
     p_wc = p_ee - d6 * R_target[:, 2]
     wx, wy, wz = p_wc
 
     q1_base = math.atan2(wy, wx)
 
+    # There are two possible q1 values due to the nature of atan2, so we calculate both and consider them as candidates
     q1_flip = q1_base + math.pi
     if q1_flip > math.pi:
       q1_flip -= 2.0 * math.pi
 
+    # Calculate the effective radius in the plane of the first three joints
     r = math.sqrt(wx**2 + wy**2)
     q1_candidates = []
     seen_q1 = set()
@@ -283,6 +285,7 @@ class Fanuc(object):
 
     solutions = []
 
+    # For each candidate q1, we solve for q2 and q3 using the geometric approach. Then we compute q4, q5, and q6 based on the orientation of the end effector.
     for q1, r_eff in q1_candidates:
       A_c = 2.0 * a2 * a3       
       B_c = -2.0 * a2 * d4      
@@ -293,6 +296,7 @@ class Fanuc(object):
         continue  
       cos_arg = np.clip(cos_arg, -1.0, 1.0)
 
+      # Calculate q3 using the cosine law, and then calculate q2 based on q3.
       phi = math.atan2(B_c, A_c)
       for elbow_sign in [1, -1]: 
         q3 = (phi + elbow_sign * math.acos(cos_arg) + math.pi) % (2.0 * math.pi) - math.pi
@@ -313,7 +317,8 @@ class Fanuc(object):
         q2 = math.atan2(s2, c2)
         if not (self.joints[1].low_limit <= q2 <= self.joints[1].high_limit):
           continue
-
+        
+        # Build T_03 using the first three joints, and then compute R_36. From R_36, we can compute q4, q5, and q6.
         T_tmp = np.eye(4)
         for theta_i, idx in zip([q1, q2 - np.pi / 2, q3], [0, 1, 2]):
           alpha_i = self.joints[idx]._alpha
@@ -330,9 +335,11 @@ class Fanuc(object):
         R03 = T_tmp[:3, :3]
         R36 = R03.T @ R_target
 
+        # Calculate q5 based on the elements of R36. Then calculate q4 and q6 based on q5 and the elements of R36.
         s5_abs = math.sqrt(R36[0, 2]**2 + R36[2, 2]**2)
         c5     = R36[1, 2]
 
+        # Two possible q5 values due to the nature of atan2, so we calculate both and consider them as candidates
         for s5_sign in [1, -1]:   
           s5 = s5_sign * s5_abs
           q5 = math.atan2(s5, c5)
@@ -349,6 +356,7 @@ class Fanuc(object):
             q4_base = math.atan2( R36[2, 2] / s5, -R36[0, 2] / s5)
             q6_base = math.atan2(-R36[1, 1] / s5,  R36[1, 0] / s5)
 
+          # Collect all candidate solutions for q4 and q6 by adding integer multiples of 2*pi to the base solutions, and checking if they are within joint limits.
           q4_list = []
           for k in range(-3, 4):
             a = q4_base + k * 2.0 * math.pi
@@ -359,6 +367,7 @@ class Fanuc(object):
             a = q6_base + k * 2.0 * math.pi
             if self.joints[5].low_limit <= a <= self.joints[5].high_limit:
               q6_list.append(a)
+          # Combine the candidate q4 and q6 values with the previously calculated q1, q2, and q3 to form complete candidate solutions for the joint angles.
           for q4 in q4_list:
             for q6 in q6_list:
               solutions.append(np.array([q1, q2, q3, q4, q5, q6]))
