@@ -286,7 +286,7 @@ class Fanuc(object):
 
     # There are two solutions for q3 due to the elbow up/down configuration.
     for s in [1,-1]:
-      q3 = s*math.acos(D)
+      q3 = s*math.acos(D) - phi
 
       beta = math.atan2(z,r)
       alpha = math.atan2(L3*math.sin(q3), a2+L3*math.cos(q3 + phi))
