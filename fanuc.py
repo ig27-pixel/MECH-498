@@ -252,77 +252,73 @@ class Fanuc(object):
                                  np.ndarray -- the 6x1 array of that solution if it exists 
     """
     # Check if the desired end effector frame is within the workspace
-    if not (self.workspace.x_min <= ee_frame[0, 3] <= self.workspace.x_max and
-            self.workspace.y_min <= ee_frame[1, 3] <= self.workspace.y_max and
-            self.workspace.z_min <= ee_frame[2, 3] <= self.workspace.z_max):
-      return False, []
-    
-    # Initialize q with the previous joint angles, ensuring they are within limits.
-    q = prev_joint_angles.copy()
-    for i, joint in enumerate(self.joints):
-      q[i] = np.clip(q[i], joint.low_limit, joint.high_limit)
-
-    # Iterative IK to match ee_frame.
-    for _ in range(300):
-      T = self.calculate_fk(q)
-
-      # Calculate the error in position and orientation.
-      pos_err = ee_frame[:3, 3] - T[:3, 3]
-      R_err = ee_frame[:3, :3] @ T[:3, :3].T
-      rot_err = 0.5 * np.array([
-          R_err[2, 1] - R_err[1, 2],
-          R_err[0, 2] - R_err[2, 0],
-          R_err[1, 0] - R_err[0, 1],
-      ])
-      err = np.hstack((pos_err, rot_err))
-
-      # If the error is small enough, we have found a solution.
-      if np.linalg.norm(pos_err) < 1e-3 and np.linalg.norm(rot_err) < 1e-4:
-        break
-
-      # Compute the Jacobian numerically.
-      J = np.zeros((6, 6))
-      for i, joint in enumerate(self.joints):
-        step = 1e-5
-        if q[i] + step > joint.high_limit:
-          step = -step if q[i] - step >= joint.low_limit else 0.0
-        if step == 0.0:
-          continue
-
-        qd = q.copy()
-        qd[i] += step
-        Td = self.calculate_fk(qd)
-
-        dpos = (Td[:3, 3] - T[:3, 3]) / step
-        Rd = Td[:3, :3] @ T[:3, :3].T
-        drot = 0.5 * np.array([
-            Rd[2, 1] - Rd[1, 2],
-            Rd[0, 2] - Rd[2, 0],
-            Rd[1, 0] - Rd[0, 1],
-        ]) / step
-        J[:, i] = np.hstack((dpos, drot))
-
-      dq = np.linalg.solve(J.T @ J + 1e-4 * np.eye(6), J.T @ err)
-      q = q + dq
-
-      # Ensure joint limits are respected after each update.
-      for i, joint in enumerate(self.joints):
-        q[i] = np.clip(q[i], joint.low_limit, joint.high_limit)
-
-    # Final check to ensure the solution is valid.
-    T = self.calculate_fk(q)
-    pos_err = ee_frame[:3, 3] - T[:3, 3]
-    R_err = ee_frame[:3, :3] @ T[:3, :3].T
-    rot_err = 0.5 * np.array([
-        R_err[2, 1] - R_err[1, 2],
-        R_err[0, 2] - R_err[2, 0],
-        R_err[1, 0] - R_err[0, 1],
-    ])
-
-    if np.linalg.norm(pos_err) > 2e-3 or np.linalg.norm(rot_err) > 2e-3:
+    if not (self.workspace.x_min <= ee_frame[0,3] <= self.workspace.x_max and
+          self.workspace.y_min <= ee_frame[1,3] <= self.workspace.y_max and
+          self.workspace.z_min <= ee_frame[2,3] <= self.workspace.z_max):
       return False, []
 
-    return True, q
+    # Extract the rotation and position from the end effector frame
+    R06 = ee_frame[:3,:3]
+    p06 = ee_frame[:3,3]
+
+    a1,a2,a3 = self.a_1, self.a_2, self.a_3
+    d4,d6 = self.l_4_z, self.l_6_z
+
+    # Calculate the wrist center position
+    pw = p06 - d6 * (R06 @ np.array([0,0,1]))
+    xw,yw,zw = pw
+
+    # θ1
+    q1 = math.atan2(yw,xw)
+
+    r = math.sqrt(xw**2 + yw**2) - a1
+    z = zw
+
+    L3 = math.sqrt(a3**2 + d4**2)
+    phi = math.atan2(d4,a3)
+
+    D = (r**2 + z**2 - a2**2 - L3**2)/(2*a2*L3)
+    if abs(D) > 1:
+      return False, []
+
+    solutions = []
+
+    # There are two solutions for q3 due to the elbow up/down configuration.
+    for s in [1,-1]:
+      q3 = s*math.acos(D) - phi
+      beta = math.atan2(z,r)
+      alpha = math.atan2(L3*math.sin(q3+phi), a2+L3*math.cos(q3+phi))
+      q2 = beta - alpha + math.pi/2
+
+      # Compute R03
+      T01 = Joint.dh_tf(0,0,0,q1)
+      T12 = Joint.dh_tf(-math.pi/2,a1,0,q2-math.pi/2)
+      T23 = Joint.dh_tf(0,a2,0,q3)
+      R03 = (T01@T12@T23)[:3,:3]
+
+      R36 = R03.T @ R06
+
+      q5 = math.atan2(math.sqrt(R36[0,2]**2 + R36[2,2]**2), R36[1,2])
+      q4 = math.atan2(R36[2,2], -R36[0,2])
+      q6 = math.atan2(-R36[1,1], R36[1,0])
+
+      q = np.array([q1,q2,q3,q4,q5,q6])
+
+      try:
+        T = self.calculate_fk(q)
+        pos_err = np.linalg.norm(T[:3,3]-p06)
+        if pos_err < 1e-3:
+          solutions.append(q)
+      except:
+        pass
+
+    # If no solutions are found, return False
+    if not solutions:
+      return False, []
+
+    # Select the solution closest to the previous joint angles
+    best = min(solutions, key=lambda x: np.linalg.norm(x-prev_joint_angles))
+    return True, best
 
 
   def _create_plot(self):
