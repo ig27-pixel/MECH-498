@@ -231,8 +231,8 @@ class Fanuc(object):
     for joint in self.joints:
       T = T @ joint.dh_transform
 
-    self.ee_frame = T
-    return self.ee_frame
+    self.ee_frame_temp = T
+    return self.ee_frame_temp
     
 
   def calculate_ik(self, ee_frame: np.ndarray,
