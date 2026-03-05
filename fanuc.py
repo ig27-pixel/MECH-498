@@ -257,96 +257,113 @@ class Fanuc(object):
           self.workspace.z_min <= ee_frame[2,3] <= self.workspace.z_max):
       return False, []
 
-    # Extract the rotation and position from the end effector frame
-    R06 = ee_frame[:3,:3]
-    p06 = ee_frame[:3,3]
+    R06 = ee_frame[:3, :3]
+    p06 = ee_frame[:3, 3]
 
-    # Extract the DH parameters for easier access
-    a1,a2,a3 = self.a_1, self.a_2, self.a_3
-    d4,d6 = self.l_4_z, self.l_6_z
+    a1, a2, a3 = float(self.a_1), float(self.a_2), float(self.a_3)
+    d4, d6 = float(self.l_4_z), float(self.l_6_z)
 
-    # Calculate the wrist center position
-    pw = p06 - d6 * (R06 @ np.array([0,0,1]))
-    xw,yw,zw = pw
+    # Wrist center
+    pw = p06 - d6 * (R06 @ np.array([0.0, 0.0, 1.0]))
+    xw, yw, zw = float(pw[0]), float(pw[1]), float(pw[2])
 
-    # Calculate q1 using the wrist center position
-    q1 = math.atan2(yw,xw)
+    # q1
+    q1 = math.atan2(yw, xw)
 
-    r = math.sqrt(xw**2 + yw**2) - a1
+    # r and z for the planar 2R problem of joints 2 and 3
+    r = math.sqrt(xw*xw + yw*yw) - a1
     z = zw
 
-    L3 = math.sqrt(a3**2 + d4**2)
+    L3 = math.sqrt(a3*a3 + d4*d4)
+    phi = math.atan2(d4, a3)
 
-    # Calculate q3 using the law of cosines
-    D = (r**2 + z**2 - a2**2 - L3**2)/(2*a2*L3)
-    D = np.clip(D,-1,1)
+    D = (r*r + z*z - a2*a2 - L3*L3) / (2.0 * a2 * L3)
+    D = float(np.clip(D, -1.0, 1.0))
 
     solutions = []
 
-    # There are two solutions for q3 due to the elbow up/down configuration.
-    for s in [1,-1]:
+    # Two solutions for q3 due to the elbow up/down configuration
+    for s in (1.0, -1.0):
 
-      q3 = s*math.acos(D)
+      # q3 is the angle of joint 3, but we need to add the offset phi to get the actual angle for the DH parameters
+      q3 = s * math.acos(D) - phi
 
-      beta = math.atan2(z,r)
-      alpha = math.atan2(L3*math.sin(q3), a2+L3*math.cos(q3))
+      beta = math.atan2(z, r)
+      alpha = math.atan2(L3 * math.sin(q3 + phi), a2 + L3 * math.cos(q3 + phi))
 
-      q2 = beta - alpha + math.pi/2
+      q2 = beta - alpha + (math.pi / 2.0)
 
-      # initial wrist guess from previous pose
-      q4,q5,q6 = prev_joint_angles[3:]
+      # Compute R03 using the SAME DH convention as your FK
+      T01 = Joint.dh_tf(0.0, 0.0, 0.0, q1)
 
-      # refine wrist orientation numerically
-      for _ in range(50):
+      # Joint 2
+      T12 = Joint.dh_tf(-math.pi/2.0, a1, 0.0, q2 - math.pi/2.0)
 
-        q = np.array([q1,q2,q3,q4,q5,q6])
+      # Joint3
+      T23 = Joint.dh_tf(0.0, a2, 0.0, q3)
 
+      R03 = (T01 @ T12 @ T23)[:3, :3]
+      R36 = R03.T @ R06
+
+      # Extract the wrist rotation elements for q4/q5/q6
+      r13 = float(R36[0, 2])
+      r21 = float(R36[1, 0])
+      r22 = float(R36[1, 1])
+      r23 = float(R36[1, 2])
+      r33 = float(R36[2, 2])
+
+      q5 = math.acos(float(np.clip(r23, -1.0, 1.0)))
+      q6 = math.atan2(-r22, r21)
+      q4 = math.atan2(r33, -r13)
+
+      # Two solutions for the wrist due to the q5 sign ambiguity
+      wrist_candidates = [
+        (q4, q5, q6),
+        (q4 + math.pi, -q5, q6 + math.pi),
+      ]
+
+      for (q4c, q5c, q6c) in wrist_candidates:
+        q = np.array([q1, q2, q3, q4c, q5c, q6c], dtype=float)
+
+        two_pi = 2.0 * math.pi
+        for i, joint in enumerate(self.joints):
+          k = int(np.round((prev_joint_angles[i] - q[i]) / two_pi))
+          best = None
+          best_dist = float("inf")
+          for kk in (k, k-1, k+1):
+            cand = q[i] + kk * two_pi
+            if joint.low_limit <= cand <= joint.high_limit:
+              d = abs(cand - prev_joint_angles[i])
+              if d < best_dist:
+                best_dist = d
+                best = cand
+          if best is not None:
+            q[i] = best
+
+        # Verify by FK
         try:
           T = self.calculate_fk(q)
-        except:
-          break
+        except ValueError:
+          continue
 
-        R_err = ee_frame[:3,:3] @ T[:3,:3].T
+        pos_err = np.linalg.norm(T[:3, 3] - p06)
 
-        rot_err = 0.5*np.array([
-            R_err[2,1]-R_err[1,2],
-            R_err[0,2]-R_err[2,0],
-            R_err[1,0]-R_err[0,1]
-        ])
+        Rerr = ee_frame[:3, :3] @ T[:3, :3].T
+        tr = float(np.trace(Rerr))
+        cang = float(np.clip((tr - 1.0) / 2.0, -1.0, 1.0))
+        ang_err = math.acos(cang)
 
-        if np.linalg.norm(rot_err) < 1e-5:
-          break
+        # Keep candidates that actually match the target
+        if pos_err < 1e-3 and ang_err < 1e-4:
+          # score by closeness to previous
+          solutions.append((np.linalg.norm(q - prev_joint_angles), q))
 
-        q4 += rot_err[0]
-        q5 += rot_err[1]
-        q6 += rot_err[2]
-
-      q = np.array([q1,q2,q3,q4,q5,q6])
-
-      try:
-        T = self.calculate_fk(q)
-
-        pos_err = np.linalg.norm(T[:3,3]-p06)
-        R_err = ee_frame[:3,:3] @ T[:3,:3].T
-        rot_err = np.linalg.norm([
-            R_err[2,1]-R_err[1,2],
-            R_err[0,2]-R_err[2,0],
-            R_err[1,0]-R_err[0,1]
-        ])
-
-        if pos_err < 1e-3 and rot_err < 1e-3:
-          solutions.append(q)
-
-      except:
-        pass
-
-    # If no solutions are found, return False
     if not solutions:
       return False, []
 
-    # Select the solution closest to the previous joint angles
-    best = min(solutions, key=lambda x: np.linalg.norm(x-prev_joint_angles))
-    return True, best
+    solutions.sort(key=lambda x: x[0])
+    return True, solutions[0][1]
+
 
 
   def _create_plot(self):
