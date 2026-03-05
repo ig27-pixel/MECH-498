@@ -263,29 +263,29 @@ class Fanuc(object):
     a1, a2, a3 = float(self.a_1), float(self.a_2), float(self.a_3)
     d4, d6 = float(self.l_4_z), float(self.l_6_z)
 
-    # Wrist center
     pw = p06 - d6 * (R06 @ np.array([0.0, 0.0, 1.0]))
     xw, yw, zw = float(pw[0]), float(pw[1]), float(pw[2])
 
-    # q1
     q1 = math.atan2(yw, xw)
 
-    # r and z for the planar 2R problem of joints 2 and 3
-    r = math.sqrt(xw*xw + yw*yw) - a1
+    r = math.sqrt(xw * xw + yw * yw) - a1
     z = zw
 
-    L3 = math.sqrt(a3*a3 + d4*d4)
+    L3 = math.sqrt(a3 * a3 + d4 * d4)
     phi = math.atan2(d4, a3)
 
-    D = (r*r + z*z - a2*a2 - L3*L3) / (2.0 * a2 * L3)
+    D = (r * r + z * z - a2 * a2 - L3 * L3) / (2.0 * a2 * L3)
     D = float(np.clip(D, -1.0, 1.0))
 
-    solutions = []
+    lows = np.array([j.low_limit for j in self.joints], dtype=float)
+    highs = np.array([j.high_limit for j in self.joints], dtype=float)
+    two_pi = 2.0 * math.pi
 
-    # Two solutions for q3 due to the elbow up/down configuration
+    best_q = None
+    best_score = float("inf")
+
     for s in (1.0, -1.0):
 
-      # q3 is the angle of joint 3, but we need to add the offset phi to get the actual angle for the DH parameters
       q3 = s * math.acos(D) - phi
 
       beta = math.atan2(z, r)
@@ -293,54 +293,51 @@ class Fanuc(object):
 
       q2 = beta - alpha + (math.pi / 2.0)
 
-      # Compute R03 using the SAME DH convention as your FK
       T01 = Joint.dh_tf(0.0, 0.0, 0.0, q1)
-
-      # Joint 2
-      T12 = Joint.dh_tf(-math.pi/2.0, a1, 0.0, q2 - math.pi/2.0)
-
-      # Joint3
+      T12 = Joint.dh_tf(-math.pi / 2.0, a1, 0.0, q2 - math.pi / 2.0)
       T23 = Joint.dh_tf(0.0, a2, 0.0, q3)
 
       R03 = (T01 @ T12 @ T23)[:3, :3]
       R36 = R03.T @ R06
 
-      # Extract the wrist rotation elements for q4/q5/q6
-      r13 = float(R36[0, 2])
-      r21 = float(R36[1, 0])
-      r22 = float(R36[1, 1])
-      r23 = float(R36[1, 2])
-      r33 = float(R36[2, 2])
+      c5 = -float(R36[2, 1])
+      c5 = float(np.clip(c5, -1.0, 1.0))
+      q5a = math.acos(c5)
 
-      q5 = math.acos(float(np.clip(r23, -1.0, 1.0)))
-      q6 = math.atan2(-r22, r21)
-      q4 = math.atan2(r33, -r13)
-
-      # Two solutions for the wrist due to the q5 sign ambiguity
-      wrist_candidates = [
-        (q4, q5, q6),
-        (q4 + math.pi, -q5, q6 + math.pi),
-      ]
-
-      for (q4c, q5c, q6c) in wrist_candidates:
-        q = np.array([q1, q2, q3, q4c, q5c, q6c], dtype=float)
-
-        two_pi = 2.0 * math.pi
-        for i, joint in enumerate(self.joints):
-          k = int(np.round((prev_joint_angles[i] - q[i]) / two_pi))
+      def wrap_near_prev(qcand: np.ndarray) -> np.ndarray:
+        qout = qcand.copy()
+        for i in range(6):
+          k = int(np.round((prev_joint_angles[i] - qout[i]) / two_pi))
           best = None
-          best_dist = float("inf")
-          for kk in (k, k-1, k+1):
-            cand = q[i] + kk * two_pi
-            if joint.low_limit <= cand <= joint.high_limit:
-              d = abs(cand - prev_joint_angles[i])
-              if d < best_dist:
-                best_dist = d
-                best = cand
+          best_d = float("inf")
+          for kk in (k, k - 1, k + 1):
+            c = qout[i] + kk * two_pi
+            if lows[i] <= c <= highs[i]:
+              d = abs(c - prev_joint_angles[i])
+              if d < best_d:
+                best_d = d
+                best = c
           if best is not None:
-            q[i] = best
+            qout[i] = best
+          else:
+            qout[i] = float(np.clip(qout[i], lows[i], highs[i]))
+        return qout
 
-        # Verify by FK
+      wrist_candidates = []
+      if abs(math.sin(q5a)) < 1e-6:
+        q4a = math.atan2(float(R36[1, 0]), float(R36[0, 0]))
+        q6a = 0.0
+        wrist_candidates.append((q4a, q5a, q6a))
+      else:
+        q4a = math.atan2(float(R36[1, 1]), float(R36[0, 1]))
+        q6a = math.atan2(float(R36[2, 2]), -float(R36[2, 0]))
+        wrist_candidates.append((q4a, q5a, q6a))
+        wrist_candidates.append((q4a + math.pi, -q5a, q6a + math.pi))
+
+      for (q4, q5, q6) in wrist_candidates:
+        q = np.array([q1, q2, q3, q4, q5, q6], dtype=float)
+        q = wrap_near_prev(q)
+
         try:
           T = self.calculate_fk(q)
         except ValueError:
@@ -353,16 +350,31 @@ class Fanuc(object):
         cang = float(np.clip((tr - 1.0) / 2.0, -1.0, 1.0))
         ang_err = math.acos(cang)
 
-        # Keep candidates that actually match the target
-        if pos_err < 1e-3 and ang_err < 1e-4:
-          # score by closeness to previous
-          solutions.append((np.linalg.norm(q - prev_joint_angles), q))
+        near = np.linalg.norm(q - prev_joint_angles)
+        score = 1e6 * pos_err + 1e4 * ang_err + near
 
-    if not solutions:
+        if score < best_score:
+          best_score = score
+          best_q = q
+
+    if best_q is None:
       return False, []
 
-    solutions.sort(key=lambda x: x[0])
-    return True, solutions[0][1]
+    try:
+      T = self.calculate_fk(best_q)
+    except ValueError:
+      return False, []
+
+    pos_err = np.linalg.norm(T[:3, 3] - p06)
+    Rerr = ee_frame[:3, :3] @ T[:3, :3].T
+    tr = float(np.trace(Rerr))
+    cang = float(np.clip((tr - 1.0) / 2.0, -1.0, 1.0))
+    ang_err = math.acos(cang)
+
+    if pos_err < 2e-2 and ang_err < 2e-2:
+      return True, best_q
+
+    return False, []
 
 
 
