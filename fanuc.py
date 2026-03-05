@@ -302,7 +302,7 @@ class Fanuc(object):
         ]) / step
         J[:, i] = np.hstack((dpos, drot))
 
-      dq = np.linalg.solve(J.T @ J + max(1e-4, 1e-6 * np.linalg.norm(err)) * np.eye(6), J.T @ err)
+      dq = np.linalg.solve(J.T @ J + 1e-4 * np.eye(6), J.T @ err)
       q = q + dq
 
       # Ensure joint limits are respected after each update.
