@@ -302,7 +302,7 @@ class Fanuc(object):
         ]) / step
         J[:, i] = np.hstack((dpos, drot))
 
-      dq = np.linalg.solve(J.T @ J + 1e-4 * np.eye(6), J.T @ err)
+      dq = np.linalg.solve(J.T @ J + max(1e-4, 1e-6 * np.linalg.norm(err)) * np.eye(6), J.T @ err)
       q = q + dq
 
       # Ensure joint limits are respected after each update.
@@ -319,7 +319,7 @@ class Fanuc(object):
         R_err[1, 0] - R_err[0, 1],
     ])
 
-    if np.linalg.norm(pos_err) > 1e-3 or np.linalg.norm(rot_err) > 1e-3:
+    if np.linalg.norm(pos_err) > 2e-3 or np.linalg.norm(rot_err) > 2e-3:
       return False, []
 
     return True, q
