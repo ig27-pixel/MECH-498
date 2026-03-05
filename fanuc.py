@@ -266,50 +266,50 @@ class Fanuc(object):
     p_wc = p_ee - d6 * R_target[:, 2]
     wx, wy, wz = p_wc
 
-
     q1_base = math.atan2(wy, wx)
 
     q1_flip = q1_base + math.pi
     if q1_flip > math.pi:
       q1_flip -= 2.0 * math.pi
 
+    r = math.sqrt(wx**2 + wy**2)
     q1_candidates = []
+    seen_q1 = set()
     for k in range(-3, 4):
-      for q1_seed in [q1_base, q1_flip]:
+      for q1_seed, r_eff_seed in [(q1_base, r), (q1_flip, -r)]:
         a = q1_seed + k * 2.0 * math.pi
-        if self.joints[0].low_limit <= a <= self.joints[0].high_limit:
-          q1_candidates.append(a)
-    q1_candidates = list(dict.fromkeys([round(q, 10) for q in q1_candidates]))
+        key = round(a, 10)
+        if self.joints[0].low_limit <= a <= self.joints[0].high_limit and key not in seen_q1:
+          seen_q1.add(key)
+          q1_candidates.append((a, r_eff_seed))
 
     solutions = []
 
-    for q1 in q1_candidates:
-      r = math.sqrt(wx**2 + wy**2)
-
-      A_c = 2.0 * a2 * a3        
-      B_c = -2.0 * a2 * d4       
-      K   = (r - a1)**2 + wz**2 - (a2**2 + a3**2 + d4**2)
+    for q1, r_eff in q1_candidates:
+      A_c = 2.0 * a2 * a3       
+      B_c = -2.0 * a2 * d4      
+      K   = (r_eff - a1)**2 + wz**2 - (a2**2 + a3**2 + d4**2)
       R_arm = math.sqrt(A_c**2 + B_c**2)
       cos_arg = K / R_arm
       if abs(cos_arg) > 1.0 + 1e-9:
-        continue
+        continue  
       cos_arg = np.clip(cos_arg, -1.0, 1.0)
 
       phi = math.atan2(B_c, A_c)
-      for elbow_sign in [1, -1]:  
+      for elbow_sign in [1, -1]: 
         q3 = (phi + elbow_sign * math.acos(cos_arg) + math.pi) % (2.0 * math.pi) - math.pi
         if not (self.joints[2].low_limit <= q3 <= self.joints[2].high_limit):
           continue
 
         c3 = math.cos(q3)
         s3 = math.sin(q3)
-        P = a3 * c3 - d4 * s3 + a2  
-        Q = a3 * s3 + d4 * c3       
+        P = a3 * c3 - d4 * s3 + a2   
+        Q = a3 * s3 + d4 * c3        
         denom = P**2 + Q**2
         if denom < 1e-10:
           continue
-        s2 = (P * (r - a1) - Q * wz) / denom
-        c2 = (P * wz       + Q * (r - a1)) / denom
+        s2 = (P * (r_eff - a1) - Q * wz) / denom
+        c2 = (P * wz           + Q * (r_eff - a1)) / denom
         if abs(s2**2 + c2**2 - 1.0) > 1e-4:
           continue
         q2 = math.atan2(s2, c2)
@@ -335,7 +335,7 @@ class Fanuc(object):
         s5_abs = math.sqrt(R36[0, 2]**2 + R36[2, 2]**2)
         c5     = R36[1, 2]
 
-        for s5_sign in [1, -1]:
+        for s5_sign in [1, -1]:   
           s5 = s5_sign * s5_abs
           q5 = math.atan2(s5, c5)
           if not (self.joints[4].low_limit <= q5 <= self.joints[4].high_limit):
@@ -350,7 +350,6 @@ class Fanuc(object):
           else:
             q4_base = math.atan2( R36[2, 2] / s5, -R36[0, 2] / s5)
             q6_base = math.atan2(-R36[1, 1] / s5,  R36[1, 0] / s5)
-
 
           q4_list = []
           for k in range(-3, 4):
