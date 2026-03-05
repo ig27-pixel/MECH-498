@@ -268,7 +268,7 @@ class Fanuc(object):
 
 
     q1_base = math.atan2(wy, wx)
-    # Shoulder-flip: robot can also reach with q1+pi (arm points opposite, elbow flips)
+
     q1_flip = q1_base + math.pi
     if q1_flip > math.pi:
       q1_flip -= 2.0 * math.pi
@@ -284,7 +284,6 @@ class Fanuc(object):
     solutions = []
 
     for q1 in q1_candidates:
-      # Radial distance of wrist center from z-axis
       r = math.sqrt(wx**2 + wy**2)
 
       A_c = 2.0 * a2 * a3        
@@ -336,7 +335,7 @@ class Fanuc(object):
         s5_abs = math.sqrt(R36[0, 2]**2 + R36[2, 2]**2)
         c5     = R36[1, 2]
 
-        for s5_sign in [1, -1]:   # wrist-flip variants
+        for s5_sign in [1, -1]:
           s5 = s5_sign * s5_abs
           q5 = math.atan2(s5, c5)
           if not (self.joints[4].low_limit <= q5 <= self.joints[4].high_limit):
