@@ -257,83 +257,145 @@ class Fanuc(object):
           self.workspace.z_min <= ee_frame[2,3] <= self.workspace.z_max):
       return False, []
 
-    R06 = ee_frame[:3, :3]
-    p06 = ee_frame[:3, 3]
+    R_target = ee_frame[:3, :3]
+    p_ee     = ee_frame[:3, 3]
 
-    a1, a2, a3 = self.a_1, self.a_2, self.a_3
-    d4, d6 = self.l_4_z, self.l_6_z
+    # DH parameters
+    a1, a2, a3, d4, d6 = 300, 900, 180, 1600, 180
 
-    pw = p06 - d6 * (R06 @ np.array([0.0, 0.0, 1.0]))
-    xw, yw, zw = float(pw[0]), float(pw[1]), float(pw[2])
+    p_wc = p_ee - d6 * R_target[:, 2]
+    wx, wy, wz = p_wc
 
-    q1_base = math.atan2(yw, xw)
 
-    L3 = math.sqrt(a3 * a3 + d4 * d4)
-    r = math.sqrt(xw * xw + yw * yw) - a1
-    z = zw
+    q1_base = math.atan2(wy, wx)
+    # Shoulder-flip: robot can also reach with q1+pi (arm points opposite, elbow flips)
+    q1_flip = q1_base + math.pi
+    if q1_flip > math.pi:
+      q1_flip -= 2.0 * math.pi
 
-    D = (r * r + z * z - a2 * a2 - L3 * L3) / (2.0 * a2 * L3)
-    if D < -1.0 - 1e-9 or D > 1.0 + 1e-9:
-      return False, []
-    D = float(np.clip(D, -1.0, 1.0))
+    q1_candidates = []
+    for k in range(-3, 4):
+      for q1_seed in [q1_base, q1_flip]:
+        a = q1_seed + k * 2.0 * math.pi
+        if self.joints[0].low_limit <= a <= self.joints[0].high_limit:
+          q1_candidates.append(a)
+    q1_candidates = list(dict.fromkeys([round(q, 10) for q in q1_candidates]))
 
     solutions = []
 
-    for q1 in [q1_base, q1_base + math.pi, q1_base - math.pi]:
-      for elbow in [1.0, -1.0]:
-        q3p = elbow * math.acos(D)
+    for q1 in q1_candidates:
+      # Radial distance of wrist center from z-axis
+      r = math.sqrt(wx**2 + wy**2)
 
-        beta = math.atan2(z, r)
-        alpha = math.atan2(L3 * math.sin(q3p), a2 + L3 * math.cos(q3p))
-        q2 = beta - alpha + math.pi / 2.0
+      A_c = 2.0 * a2 * a3        
+      B_c = -2.0 * a2 * d4       
+      K   = (r - a1)**2 + wz**2 - (a2**2 + a3**2 + d4**2)
+      R_arm = math.sqrt(A_c**2 + B_c**2)
+      cos_arg = K / R_arm
+      if abs(cos_arg) > 1.0 + 1e-9:
+        continue
+      cos_arg = np.clip(cos_arg, -1.0, 1.0)
 
-        T01 = Joint.dh_tf(0.0, 0.0, 0.0, q1)
-        T12 = Joint.dh_tf(-math.pi / 2.0, a1, 0.0, q2 - math.pi / 2.0)
-        T23 = Joint.dh_tf(0.0, a2, 0.0, q3p)
-        R03 = (T01 @ T12 @ T23)[:3, :3]
-        R36 = R03.T @ R06
+      phi = math.atan2(B_c, A_c)
+      for elbow_sign in [1, -1]:  
+        q3 = (phi + elbow_sign * math.acos(cos_arg) + math.pi) % (2.0 * math.pi) - math.pi
+        if not (self.joints[2].low_limit <= q3 <= self.joints[2].high_limit):
+          continue
 
-        c5 = -float(R36[2, 1])
-        s5 = math.sqrt(float(R36[0, 1])**2 + float(R36[1, 1])**2)
+        c3 = math.cos(q3)
+        s3 = math.sin(q3)
+        P = a3 * c3 - d4 * s3 + a2  
+        Q = a3 * s3 + d4 * c3       
+        denom = P**2 + Q**2
+        if denom < 1e-10:
+          continue
+        s2 = (P * (r - a1) - Q * wz) / denom
+        c2 = (P * wz       + Q * (r - a1)) / denom
+        if abs(s2**2 + c2**2 - 1.0) > 1e-4:
+          continue
+        q2 = math.atan2(s2, c2)
+        if not (self.joints[1].low_limit <= q2 <= self.joints[1].high_limit):
+          continue
 
-        for sgn in [1.0, -1.0]:
-          q5 = math.atan2(sgn * s5, c5)
+        T_tmp = np.eye(4)
+        for theta_i, idx in zip([q1, q2 - np.pi / 2, q3], [0, 1, 2]):
+          alpha_i = self.joints[idx]._alpha
+          a_i     = self.joints[idx]._a
+          d_i     = self.joints[idx]._d
+          ct, st  = math.cos(theta_i), math.sin(theta_i)
+          ca, sa  = math.cos(alpha_i), math.sin(alpha_i)
+          T_tmp   = T_tmp @ np.array([
+            [ct,    -st,    0,     a_i  ],
+            [st*ca, ct*ca, -sa,  -sa*d_i],
+            [st*sa, ct*sa,  ca,   ca*d_i],
+            [0,     0,      0,    1     ]
+          ])
+        R03 = T_tmp[:3, :3]
+        R36 = R03.T @ R_target
 
-          if abs(s5) < 1e-9:
-            q4 = float(prev_joint_angles[3])
-            q6 = math.atan2(float(R36[1, 0]), float(R36[0, 0]))
+        s5_abs = math.sqrt(R36[0, 2]**2 + R36[2, 2]**2)
+        c5     = R36[1, 2]
+
+        for s5_sign in [1, -1]:   # wrist-flip variants
+          s5 = s5_sign * s5_abs
+          q5 = math.atan2(s5, c5)
+          if not (self.joints[4].low_limit <= q5 <= self.joints[4].high_limit):
+            continue
+
+          if s5_abs < 1e-6:
+            q4_base = prev_joint_angles[3]
+            if c5 > 0:   
+              q6_base = math.atan2(-R36[1, 1], R36[1, 0]) - q4_base
+            else:        
+              q6_base = math.atan2(R36[1, 1], -R36[1, 0]) + q4_base
           else:
-            q4 = math.atan2(-float(R36[1, 1]) / (sgn * s5), -float(R36[0, 1]) / (sgn * s5))
-            q6 = math.atan2(float(R36[2, 2]) / (sgn * s5), -float(R36[2, 0]) / (sgn * s5))
+            q4_base = math.atan2( R36[2, 2] / s5, -R36[0, 2] / s5)
+            q6_base = math.atan2(-R36[1, 1] / s5,  R36[1, 0] / s5)
 
-          q = np.array([q1, q2, q3p, q4, q5, q6], dtype=float)
 
-          for i, joint in enumerate(self.joints):
-            lo, hi = float(joint.low_limit), float(joint.high_limit)
-            while q[i] < lo:
-              q[i] += 2.0 * math.pi
-            while q[i] > hi:
-              q[i] -= 2.0 * math.pi
-            if q[i] < lo - 1e-9 or q[i] > hi + 1e-9:
-              q = None
-              break
-
-          if q is None:
-            continue
-
-          try:
-            Tchk = self.calculate_fk(q)
-          except Exception:
-            continue
-
-          if np.linalg.norm(Tchk[:3, 3] - ee_frame[:3, 3]) < 1e-3 and np.linalg.norm(Tchk[:3, :3] - ee_frame[:3, :3]) < 1e-3:
-            solutions.append(q)
+          q4_list = []
+          for k in range(-3, 4):
+            a = q4_base + k * 2.0 * math.pi
+            if self.joints[3].low_limit <= a <= self.joints[3].high_limit:
+              q4_list.append(a)
+          q6_list = []
+          for k in range(-3, 4):
+            a = q6_base + k * 2.0 * math.pi
+            if self.joints[5].low_limit <= a <= self.joints[5].high_limit:
+              q6_list.append(a)
+          for q4 in q4_list:
+            for q6 in q6_list:
+              solutions.append(np.array([q1, q2, q3, q4, q5, q6]))
 
     if not solutions:
       return False, []
 
-    best = min(solutions, key=lambda x: float(np.linalg.norm(x - prev_joint_angles)))
-    return True, best
+    best_sol  = None
+    best_dist = float('inf')
+    for sol in solutions:
+      try:
+        T_check = self.calculate_fk(sol)
+      except ValueError:
+        continue
+      pos_err = np.linalg.norm(ee_frame[:3, 3] - T_check[:3, 3])
+      R_err   = ee_frame[:3, :3] @ T_check[:3, :3].T
+      rot_err = np.linalg.norm(0.5 * np.array([
+          R_err[2, 1] - R_err[1, 2],
+          R_err[0, 2] - R_err[2, 0],
+          R_err[1, 0] - R_err[0, 1],
+      ]))
+      if pos_err > 1e-3 or rot_err > 1e-3:
+        continue
+      dist = np.linalg.norm(sol - prev_joint_angles)
+      if dist < best_dist:
+        best_dist = dist
+        best_sol  = sol
+
+    if best_sol is None:
+      return False, []
+
+    return True, best_sol
+
 
 
 
