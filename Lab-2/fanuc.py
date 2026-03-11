@@ -91,7 +91,7 @@ class Fanuc(object):
     self.a_5 = 0
     
     self.l_1_z = 0
-    self.l_2_z = 1000
+    self.l_2_z = 0
     self.l_3_z = 0
     self.l_4_z = 1600
     self.l_5_z = 0
