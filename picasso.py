@@ -97,10 +97,11 @@ class Picasso(Fanuc):
       brush_pose = np.array([x_vals[i], y_vals[i], z_vals[i]], dtype=float)
 
       # When switching to a new color, insert a brush=0 transition step first.
-      # selected_brush_frame_dh at selection=0 uses the next brush's DH frame,
-      # pre-positioning the robot smoothly before the new brush activates.
+      # Use the next brush's DH frame to pre-position the robot smoothly,
+      # then record it as color=0. Avoids calling selected_brush_frame_dh at
+      # selection=0 which crashes when the previous brush was brush 4.
       if color != prev_color and prev_color != 0:
-        self.brush.selection = 0
+        self.brush.selection = color
         ee_pose = self.get_ee_pose_from_brush(rotation, brush_pose)
         success, joint_angles = self.calculate_ik(ee_pose, prev_angles)
         if success:
