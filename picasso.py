@@ -65,7 +65,6 @@ class Picasso(Fanuc):
   def calculate_picasso_path(self, starting_angles: np.ndarray, path: str) -> List[np.ndarray]:
     """ Calculate the joint angles to draw a desired path without drawing it
 
-      TODO
         This is what the auto-grader will use to evaluate how your robot draws. You must take in the 
         inputs of starting angles and path and generate a 7x1 numpy array of joint angles and brunch color
         [x, y, z, roll, pitch, yaw, color] to draw the path properly. You must take into account the 
@@ -148,13 +147,13 @@ class Picasso(Fanuc):
 
 if __name__ == "__main__":
   picasso = Picasso(swap_sign=False, drawing_enabled=True)
-  # picasso.draw_picasso_path(
-  #     starting_angles=np.radians([0, -90, 90, 0, 0, 0]),
-  #     path="FILL_IN")
+  picasso.draw_picasso_path(
+      starting_angles=np.radians([0, -90, 90, 0, 0, 0]),
+      path="azalea.yaml")
 
-  picasso.draw_picasso(
-      joint_angles=np.radians([0, 0, 0, 0, 0, 0]))
-  time.sleep(2.0)
-  picasso.draw_picasso(
-      joint_angles=np.radians([0, 0, 0, 0, 0, 0]))
-  time.sleep(2.0)
+  # picasso.draw_picasso(
+  #     joint_angles=np.radians([0, 0, 0, 0, 0, 0]))
+  # time.sleep(2.0)
+  # picasso.draw_picasso(
+  #     joint_angles=np.radians([0, 0, 0, 0, 0, 0]))
+  # time.sleep(2.0)
