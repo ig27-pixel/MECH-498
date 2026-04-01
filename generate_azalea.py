@@ -23,14 +23,19 @@ CZ   =    0.0   # flat drawing plane Z (mm)
 # ---------------------------------------------------------------------------
 
 def transition(xs, ys, zs, cs,
-               x0, y0, x1, y1, z=CZ, n=12):
-    """Lift brush (color 0) and glide from (x0,y0) to (x1,y1)."""
-    for k in range(1, n + 1):
-        a = k / n
-        xs.append(x0 + a * (x1 - x0))
-        ys.append(y0 + a * (y1 - y0))
-        zs.append(z)
-        cs.append(0)
+               x0, y0, x1, y1, z=CZ, n=12, color=1):
+    """Glide from (x0,y0) to (x1,y1) routing through the flower center
+    so transition strokes are hidden under other strokes."""
+    mid_x, mid_y = CX, CY
+    for seg_start, seg_end in [((x0, y0), (mid_x, mid_y)), ((mid_x, mid_y), (x1, y1))]:
+        sx, sy = seg_start
+        ex, ey = seg_end
+        for k in range(1, n + 1):
+            a = k / n
+            xs.append(sx + a * (ex - sx))
+            ys.append(sy + a * (ey - sy))
+            zs.append(z)
+            cs.append(color)
 
 
 def ellipse_pts(ecx, ecy, semi_a, semi_b, tilt, n=80):
@@ -88,7 +93,7 @@ for i in range(N_PETALS):
         append_stroke(px, py, 1)
     else:
         transition(xs, ys, zs, cs,
-                   xs[-1], ys[-1], px[0], py[0])
+                   xs[-1], ys[-1], px[0], py[0], color=1)
         append_stroke(px, py, 1)
 
     petal_starts.append((px[0], py[0]))
@@ -110,7 +115,7 @@ for i in range(N_PETALS):
     px, py = ellipse_pts(pcx, pcy, INNER_LEN, INNER_WID, angle, n=50)
 
     transition(xs, ys, zs, cs,
-               xs[-1], ys[-1], px[0], py[0])
+               xs[-1], ys[-1], px[0], py[0], color=2)
     append_stroke(px, py, 2)
 
 
@@ -124,7 +129,7 @@ N_STAMEN   = 8
 
 # central ring
 px, py = ellipse_pts(CX, CY, STAMEN_R, STAMEN_R, 0, n=50)
-transition(xs, ys, zs, cs, xs[-1], ys[-1], px[0], py[0])
+transition(xs, ys, zs, cs, xs[-1], ys[-1], px[0], py[0], color=3)
 append_stroke(px, py, 3)
 
 # filaments
@@ -135,7 +140,7 @@ for i in range(N_STAMEN):
     x1 = CX + STAMEN_LEN * np.cos(a)
     y1 = CY + STAMEN_LEN * np.sin(a)
 
-    transition(xs, ys, zs, cs, xs[-1], ys[-1], x0, y0)
+    transition(xs, ys, zs, cs, xs[-1], ys[-1], x0, y0, color=3)
     t_line = np.linspace(0, 1, 15)
     for t in t_line:
         xs.append(float(x0 + t * (x1 - x0)))
@@ -164,7 +169,7 @@ for (dx, dy, llen, lwid, ltilt) in leaf_defs:
     lcy = CY + dy
     px, py = petal_pts(lcx, lcy, llen, lwid, ltilt, n=60)
 
-    transition(xs, ys, zs, cs, xs[-1], ys[-1], px[0], py[0])
+    transition(xs, ys, zs, cs, xs[-1], ys[-1], px[0], py[0], color=4)
     append_stroke(px, py, 4)
 
     # midrib line down the leaf
@@ -172,7 +177,7 @@ for (dx, dy, llen, lwid, ltilt) in leaf_defs:
     tip_y  = lcy + llen * 0.5 * np.sin(ltilt)
     base_x = lcx - llen * 0.4 * np.cos(ltilt)
     base_y = lcy - llen * 0.4 * np.sin(ltilt)
-    transition(xs, ys, zs, cs, xs[-1], ys[-1], base_x, base_y)
+    transition(xs, ys, zs, cs, xs[-1], ys[-1], base_x, base_y, color=4)
     t_line = np.linspace(0, 1, 25)
     for t in t_line:
         xs.append(float(base_x + t * (tip_x - base_x)))
