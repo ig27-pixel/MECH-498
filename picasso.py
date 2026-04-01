@@ -36,7 +36,6 @@ class Picasso(Fanuc):
                              brush_pose: np.ndarray) -> np.ndarray:
     """Get the end effector pose from the desired pose of the brush. 
 
-    TODO
     Note: If you are confused why this blank function is here. Remember that the 
     test drawing files, and your drawing files, are the location of the Brush tip, NOT the 
     end effector frame. Therefore, you need to calculate that EE frame from the brush frame 
@@ -86,7 +85,7 @@ class Picasso(Fanuc):
     z_vals = data['z']
     colors = data['color']
 
-    # Constant brush orientation (identity — pointing straight along world axes)
+    # Constant brush orientation
     rotation = np.eye(3)
 
     prev_angles = np.array(starting_angles, dtype=float)
@@ -96,17 +95,22 @@ class Picasso(Fanuc):
       color = int(colors[i])
       brush_pose = np.array([x_vals[i], y_vals[i], z_vals[i]], dtype=float)
 
-      # When switching to a new color, insert a brush=0 transition step first.
-      # Use the next brush's DH frame to pre-position the robot smoothly,
-      # then record it as color=0. Avoids calling selected_brush_frame_dh at
-      # selection=0 which crashes when the previous brush was brush 4.
+      # When switching to a new color, interpolate in joint space with enough
+      # color=0 steps so no single step exceeds 5 degrees on any joint.
       if color != prev_color and prev_color != 0:
         self.brush.selection = color
         ee_pose = self.get_ee_pose_from_brush(rotation, brush_pose)
-        success, joint_angles = self.calculate_ik(ee_pose, prev_angles)
-        if success:
-          prev_angles = joint_angles
-        output_path.append(np.array([*prev_angles, 0]))
+        success, q_new = self.calculate_ik(ee_pose, prev_angles)
+        if not success:
+          q_new = prev_angles.copy()
+
+        max_diff_deg = np.degrees(np.max(np.abs(q_new - prev_angles)))
+        n_steps = max(1, int(np.ceil(max_diff_deg / 4.0)))
+        for step in range(1, n_steps + 1):
+          alpha = step / n_steps
+          q_interp = prev_angles + alpha * (q_new - prev_angles)
+          output_path.append(np.array([*q_interp, 0]))
+        prev_angles = q_new
 
       self.brush.selection = color
       ee_pose = self.get_ee_pose_from_brush(rotation, brush_pose)
