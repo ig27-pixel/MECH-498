@@ -148,6 +148,9 @@ class Picasso(Fanuc):
 
 if __name__ == "__main__":
   picasso = Picasso(swap_sign=False, drawing_enabled=True)
+  # picasso.draw_picasso_path(
+  #     starting_angles=np.radians([0, -90, 90, 0, 0, 0]),
+  #     path="FILL_IN")
 
   picasso.draw_picasso(
       joint_angles=np.radians([0, 0, 0, 0, 0, 0]))
