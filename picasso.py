@@ -52,7 +52,13 @@ class Picasso(Fanuc):
     general.check_proper_numpy_format(rotation, (3, 3))
     general.check_proper_numpy_format(brush_pose, (3, ))
 
-    return ...
+    T_brush = np.eye(4)
+    T_brush[:3, :3] = rotation
+    T_brush[:3, 3] = brush_pose
+
+    T_brush_dh = self.brush.selected_brush_frame_dh
+    ee_pose = T_brush @ np.linalg.inv(T_brush_dh)
+    return ee_pose
   
   def calculate_picasso_path(self, starting_angles: np.ndarray, path: str) -> List[np.ndarray]:
     """ Calculate the joint angles to draw a desired path without drawing it
@@ -74,7 +80,31 @@ class Picasso(Fanuc):
     data = general.get_data_from_yaml(path)
     output_path = []
 
-    return ...
+    x_vals = data['x']
+    y_vals = data['y']
+    z_vals = data['z']
+    colors = data['color']
+
+    # Constant brush orientation (identity — pointing straight along world axes)
+    rotation = np.eye(3)
+
+    prev_angles = np.array(starting_angles, dtype=float)
+
+    for i in range(len(x_vals)):
+      color = int(colors[i])
+      self.brush.selection = color
+
+      brush_pose = np.array([x_vals[i], y_vals[i], z_vals[i]], dtype=float)
+      ee_pose = self.get_ee_pose_from_brush(rotation, brush_pose)
+
+      success, joint_angles = self.calculate_ik(ee_pose, prev_angles)
+
+      if success:
+        prev_angles = joint_angles
+
+      output_path.append(np.array([*prev_angles, color]))
+
+    return output_path
 
   def draw_picasso_path(self, starting_angles: np.ndarray, path: str) -> None:
     """Draw the fanuc moving through a desired path
