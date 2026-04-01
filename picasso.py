@@ -1,5 +1,6 @@
 import numpy as np
 import time
+from typing import List
 
 from fanuc_provided import Fanuc
 from robot_components import Brush
