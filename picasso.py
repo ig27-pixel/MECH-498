@@ -90,20 +90,30 @@ class Picasso(Fanuc):
     rotation = np.eye(3)
 
     prev_angles = np.array(starting_angles, dtype=float)
+    prev_color = 0
 
     for i in range(len(x_vals)):
       color = int(colors[i])
-      self.brush.selection = color
-
       brush_pose = np.array([x_vals[i], y_vals[i], z_vals[i]], dtype=float)
+
+      # When switching to a new color, insert a brush=0 transition step first.
+      # selected_brush_frame_dh at selection=0 uses the next brush's DH frame,
+      # pre-positioning the robot smoothly before the new brush activates.
+      if color != prev_color and prev_color != 0:
+        self.brush.selection = 0
+        ee_pose = self.get_ee_pose_from_brush(rotation, brush_pose)
+        success, joint_angles = self.calculate_ik(ee_pose, prev_angles)
+        if success:
+          prev_angles = joint_angles
+        output_path.append(np.array([*prev_angles, 0]))
+
+      self.brush.selection = color
       ee_pose = self.get_ee_pose_from_brush(rotation, brush_pose)
-
       success, joint_angles = self.calculate_ik(ee_pose, prev_angles)
-
       if success:
         prev_angles = joint_angles
-
       output_path.append(np.array([*prev_angles, color]))
+      prev_color = color
 
     return output_path
 
