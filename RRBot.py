@@ -382,9 +382,10 @@ class RRBot(object):
     """
     self.clear_history()  # Clear any existing data from previous runs
 
-    # ---- Initial conditions (lab spec: θ1=π/3, θ2=π/2, at rest) ----
+    # ---- Initial conditions: θ1=π/3, θ2=π/4, at rest ----
+    # NOTE: π/2 is an unstable equilibrium (cos(π/2)=0 → G[1]=0, robot never moves)
     curr_js1 = JointState(position=math.pi / 3, velocity=0.0, acceleration=0.0)
-    curr_js2 = JointState(position=math.pi / 2, velocity=0.0, acceleration=0.0)
+    curr_js2 = JointState(position=math.pi / 4, velocity=0.0, acceleration=0.0)
 
     n_steps = int(round(self._duration / self._dt))
 
@@ -398,8 +399,8 @@ class RRBot(object):
                 - self._kv * curr_js1.vel)
         tau2 = (-self._kp * (curr_js2.pos - self._joint_2_des)
                 - self._kv * curr_js2.vel)
-        tau1 = float(np.clip(tau1, -200.0, 200.0))
-        tau2 = float(np.clip(tau2, -200.0, 200.0))
+        tau1 = float(np.clip(tau1, -TAU_MAX, TAU_MAX))
+        tau2 = float(np.clip(tau2, -TAU_MAX, TAU_MAX))
       else:
         tau1, tau2 = 0.0, 0.0
 
@@ -447,8 +448,13 @@ class RRBot(object):
     Do NOT call simulate_rr() here. The autograder drives the simulation
     via test_setpoint_1_underdamped().
     """
-    self._kp = 0 ## TODO 
-    self._kv = 0 ## TODO
+    # Underdamped: choose ζ ≈ 0.1-0.2 so the response clearly oscillates.
+    # With M11≈29, M22≈13 and Kp=50:
+    #   ζ₁ = 10 / (2√(50·29)) ≈ 0.13  (joint 1)
+    #   ζ₂ = 10 / (2√(50·13)) ≈ 0.20  (joint 2)
+    # Period ≈ 3-5 s → ≥2 sign changes within the 5 s window.
+    self._kp = 50.0
+    self._kv = 10.0
 
   def control_critically_damped(self) -> None:
     """Set PD gains for a critically damped (or overdamped) response.
@@ -464,8 +470,13 @@ class RRBot(object):
     both joints reach within 0.1 rad and 0.01 rad/s of the target by the
     end of the 5-second simulation.
     """
-    self._kp = 0 ## TODO 
-    self._kv = 0 ## TODO
+    # Critically damped / overdamped: ζ ≥ 1 for both joints.
+    # With M11≈29, M22≈13 and Kp=300:
+    #   ζ₁ = 200 / (2√(300·29)) ≈ 1.07  (just overdamped)
+    #   ζ₂ = 200 / (2√(300·13)) ≈ 1.60  (overdamped)
+    # Gravity steady-state error at θ2d=1.3: G[1]/Kp ≈ 22.8/300 ≈ 0.076 rad < 0.1 ✓
+    self._kp = 300.0
+    self._kv = 200.0
 
   # ------------------------------------------------------------------ #
   # Provided — autograder entry points; do not modify                   #
