@@ -266,7 +266,41 @@ class RRBot(object):
         js1 (JointState): State of joint 1 — use js1.pos (θ1) and js1.vel (θ̇1).
         js2 (JointState): State of joint 2 — use js2.pos (θ2) and js2.vel (θ̇2).
     """
-    raise NotImplementedError()
+    theta2     = js2.pos
+    theta1_dot = js1.vel
+    theta2_dot = js2.vel
+
+    c2 = np.cos(theta2)
+    s2 = np.sin(theta2)
+
+    # Frequently used intermediate value
+    r = self._l_1 + self._Lc2 * c2   # (L1 + Lc2*cos(θ2))
+
+    # --- Mass / inertia matrix M (2x2) ---
+    # From Lagrangian derivation (lab eq. 1):
+    #   τ1: (M1*Lc1² + M2*r² + I1 + I2)*θ̈1
+    #   τ2: (M2*Lc2²  + I2)*θ̈2
+    m11 = self._M1 * self._Lc1 ** 2 + self._M2 * r ** 2 + self._I1 + self._I2
+    m22 = self._M2 * self._Lc2 ** 2 + self._I2
+
+    self.M = np.array([[m11, 0.0],
+                       [0.0, m22]])
+
+    # --- Coriolis / centrifugal vector C (2x1) ---
+    # From lab eq. 1 velocity-dependent terms:
+    #   τ1: -2*M2*Lc2*s2*r * θ̇1*θ̇2
+    #   τ2: +M2*Lc2*s2*r  * θ̇1²
+    c1_val = -2.0 * self._M2 * self._Lc2 * s2 * r * theta1_dot * theta2_dot
+    c2_val =        self._M2 * self._Lc2 * s2 * r * theta1_dot ** 2
+
+    self.C = np.array([[c1_val],
+                       [c2_val]])
+
+    # --- Gravity vector G (2x1) ---
+    # Joint 1 rotates about Z — link 1 CoM stays at z=0, no gravity term.
+    # Joint 2 raises/lowers link 2 CoM: ∂PE/∂θ2 = M2*g*Lc2*cos(θ2)
+    self.G = np.array([[0.0],
+                       [self._M2 * self._g * self._Lc2 * c2]])
 
   def calculate_energy(self, js1: JointState,
                        js2: JointState) -> Tuple[float, float, float]:
@@ -281,7 +315,21 @@ class RRBot(object):
     Returns:
         Tuple[float, float, float]: Current (KE, PE, E_total) in Joules.
     """
-    raise NotImplementedError()
+    # Ensure M reflects the current configuration
+    self.update_dynamics(js1, js2)
+
+    # Kinetic energy: KE = ½ θ̇ᵀ M θ̇
+    # M is diagonal, so KE = ½(M11*θ̇1² + M22*θ̇2²)
+    theta_dot = np.array([[js1.vel], [js2.vel]])
+    KE = 0.5 * float(theta_dot.T @ self.M @ theta_dot)
+
+    # Potential energy: PE = M2*g*Lc2*sin(θ2)
+    # (Link 1 CoM is always at z=0 since joint 1 rotates about Z)
+    # Integrating G[1] = M2*g*Lc2*cos(θ2) w.r.t. θ2 gives this expression.
+    PE = self._M2 * self._g * self._Lc2 * np.sin(js2.pos)
+
+    E_total = KE + PE
+    return KE, PE, E_total
 
   def simulate_rr(self, controlled: bool = False) -> None:
     """Run the 2-DOF RR robot dynamics simulation.
@@ -312,7 +360,62 @@ class RRBot(object):
         controlled (bool): If True, apply PD control. If False, tau = 0.
     """
     self.clear_history()  # Clear any existing data from previous runs
-    raise NotImplementedError()
+
+    # ---- Initial conditions (lab spec: θ1=π/3, θ2=π/2, at rest) ----
+    curr_js1 = JointState(position=math.pi / 3, velocity=0.0, acceleration=0.0)
+    curr_js2 = JointState(position=math.pi / 2, velocity=0.0, acceleration=0.0)
+
+    n_steps = int(round(self._duration / self._dt))
+
+    for _ in range(n_steps):
+      # Step 1 — update M, C, G for the current state
+      self.update_dynamics(curr_js1, curr_js2)
+
+      # Step 2 — compute joint torques
+      if controlled and self._kp is not None and self._kv is not None:
+        tau1 = (-self._kp * (curr_js1.pos - self._joint_1_des)
+                - self._kv * curr_js1.vel)
+        tau2 = (-self._kp * (curr_js2.pos - self._joint_2_des)
+                - self._kv * curr_js2.vel)
+        tau1 = float(np.clip(tau1, -200.0, 200.0))
+        tau2 = float(np.clip(tau2, -200.0, 200.0))
+      else:
+        tau1, tau2 = 0.0, 0.0
+
+      tau = np.array([[tau1], [tau2]])
+
+      # Step 3 — solve for angular accelerations: θ̈ = M⁻¹(τ − C − G)
+      theta_ddot = np.linalg.solve(self.M, tau - self.C - self.G)
+      new_accel1 = float(theta_ddot[0])
+      new_accel2 = float(theta_ddot[1])
+
+      # Step 4 — integrate velocities (trapezoidal rule)
+      new_vel1 = trapazoid_calc(curr_js1.vel, curr_js1.accel, new_accel1, self._dt)
+      new_vel2 = trapazoid_calc(curr_js2.vel, curr_js2.accel, new_accel2, self._dt)
+
+      # Step 5 — integrate positions (trapezoidal rule)
+      new_pos1 = trapazoid_calc(curr_js1.pos, curr_js1.vel, new_vel1, self._dt)
+      new_pos2 = trapazoid_calc(curr_js2.pos, curr_js2.vel, new_vel2, self._dt)
+
+      # Advance state
+      curr_js1 = JointState(position=new_pos1, velocity=new_vel1,
+                            acceleration=new_accel1)
+      curr_js2 = JointState(position=new_pos2, velocity=new_vel2,
+                            acceleration=new_accel2)
+
+      # Step 6 — calculate and record energy
+      KE, PE, E_total = self.calculate_energy(curr_js1, curr_js2)
+      self.KE_data.append(KE)
+      self.PE_data.append(PE)
+      self.E_total_data.append(E_total)
+
+      # Record joint states and torques
+      self.joint_1_data.append(deepcopy(curr_js1))
+      self.joint_2_data.append(deepcopy(curr_js2))
+      self.tau_data.append(tau)
+
+      # Optional live drawing
+      self.draw_rr(np.array([curr_js1.pos, curr_js2.pos]))
 
   def control_underdamped(self) -> None:
     """Set PD gains for an underdamped closed-loop response.
