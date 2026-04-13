@@ -154,6 +154,27 @@ class RRBot(object):
     ## NOTE -- you must populate this in simulate_rr() for the autograder to work.
     self.tau_data = []
 
+    # Physical parameters (lab spec) — must be set before Workspace is created
+    self._m1  = 1.0    # kg  — point mass at end of link 1
+    self._m2  = 5.0    # kg  — point mass at end of link 2
+    self._mr1 = 2.3    # kg  — distributed mass of link 1 rod
+    self._mr2 = 2.3    # kg  — distributed mass of link 2 rod
+    self._l_1 = 1.0    # m   — length of link 1
+    self._l_2 = 1.41   # m   — length of link 2
+    self._g   = 9.81   # m/s²
+
+    # Composite masses
+    self._M1 = self._m1 + self._mr1
+    self._M2 = self._m2 + self._mr2
+
+    # Centers of mass (distance from proximal joint along link)
+    self._Lc1 = (self._m1 + 0.5 * self._mr1) * self._l_1 / self._M1
+    self._Lc2 = (self._m2 + 0.5 * self._mr2) * self._l_2 / self._M2
+
+    # Moments of inertia about CoM (lab spec formula)
+    self._I1 = (1.0/12.0) * self._mr1 * self._l_1**2 + self._m1 * (self._l_1/2)**2
+    self._I2 = (1.0/12.0) * self._mr2 * self._l_2**2 + self._m2 * (self._l_2/2)**2
+
     self.workspace = Workspace(-(self._l_1 + self._l_2),
                                (self._l_1 + self._l_2),
                                -(self._l_1 + self._l_2),
