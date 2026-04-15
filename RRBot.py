@@ -472,12 +472,12 @@ class RRBot(object):
     """
     # Critically damped / overdamped: ζ ≥ 1 for both joints.
     # With M11≈29, M22≈13 and Kp=400:
-    #   ζ₁ = 220 / (2√(400·29)) ≈ 1.02  (just overdamped)
-    #   ζ₂ = 220 / (2√(400·13)) ≈ 1.53  (overdamped)
+    #   ζ₁ = 350 / (2√(400·29)) ≈ 1.62  (clearly overdamped, 0 sign changes)
+    #   ζ₂ = 350 / (2√(400·13)) ≈ 2.43  (clearly overdamped)
     # Gravity steady-state error at θ2d=1.3:
     #   e_ss ≈ 22.8/(400−82) ≈ 0.072 rad < 0.1 rad tolerance ✓
     self._kp = 400.0
-    self._kv = 220.0
+    self._kv = 350.0
 
   # ------------------------------------------------------------------ #
   # Provided — autograder entry points; do not modify                   #
