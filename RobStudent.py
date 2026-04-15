@@ -151,14 +151,14 @@ class RobStudent(RobSimulation):
     # G[2] = g*1e-3 * m3 * (-lc3*sin(θ2+θ3))
     t2  = theta[1]
     t3  = theta[2]
+    s23 = np.sin(t2 + t3)
     c2  = np.cos(t2)
-    c23 = np.cos(t2 + t3)
 
     G = np.array([
         0.0,
         self.g * 1e-3 * (self.m2 * (self.l2 / 2.0) * c2
-                         + self.m3 * (self.l2 * c2 + self.lc3 * c23)),
-        self.g * 1e-3 * self.m3 * self.lc3 * c23,
+                         + self.m3 * (self.l2 * c2 - self.lc3 * s23)),
+        self.g * 1e-3 * self.m3 * (-self.lc3 * s23),
     ])
 
     # ── PD gains ─────────────────────────────────────────────────────────────
