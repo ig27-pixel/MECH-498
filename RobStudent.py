@@ -151,20 +151,22 @@ class RobStudent(RobSimulation):
     # G[2] = g*1e-3 * m3 * (-lc3*sin(θ2+θ3))
     t2  = theta[1]
     t3  = theta[2]
-    s23 = np.sin(t2 + t3)
     c2  = np.cos(t2)
+    c23 = np.cos(t2 + t3)
 
+    # FK: z_ee = l1 + l2*sin(θ2) + l3*sin(θ2+θ3)  (Modified DH convention)
+    # → ∂PE/∂θ2 uses l2*cos(θ2)+lc3*cos(θ2+θ3), ∂PE/∂θ3 uses lc3*cos(θ2+θ3)
     G = np.array([
         0.0,
         self.g * 1e-3 * (self.m2 * (self.l2 / 2.0) * c2
-                         + self.m3 * (self.l2 * c2 - self.lc3 * s23)),
-        self.g * 1e-3 * self.m3 * (-self.lc3 * s23),
+                         + self.m3 * (self.l2 * c2 + self.lc3 * c23)),
+        self.g * 1e-3 * self.m3 * self.lc3 * c23,
     ])
 
     # ── PD gains ─────────────────────────────────────────────────────────────
-    # Different gains per joint to account for varying effective inertia.
-    Kp = np.array([400.0, 2000.0, 1200.0])
-    Kd = np.array([80.0,  300.0,  200.0])
+    # High gains ensure convergence within the 2-second dwell windows.
+    Kp = np.array([2000.0, 12000.0, 6000.0])
+    Kd = np.array([700.0,  2000.0,  1200.0])
 
     # ── Torque ───────────────────────────────────────────────────────────────
     pos_err = theta     - theta_ref

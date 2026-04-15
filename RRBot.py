@@ -476,8 +476,8 @@ class RRBot(object):
     #   ζ₂ = 350 / (2√(400·13)) ≈ 2.43  (clearly overdamped)
     # Gravity steady-state error at θ2d=1.3:
     #   e_ss ≈ 22.8/(400−82) ≈ 0.072 rad < 0.1 rad tolerance ✓
-    self._kp = 400.0
-    self._kv = 350.0
+    self._kp = 500.0
+    self._kv = 400.0
 
   # ------------------------------------------------------------------ #
   # Provided — autograder entry points; do not modify                   #
