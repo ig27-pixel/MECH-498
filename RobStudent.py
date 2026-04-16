@@ -31,14 +31,41 @@ class RobStudent(RobSimulation):
   def create_rob_trajectory(self, waypoints: np.ndarray) -> Trajectory:
     """Build a 30-second joint-space trajectory from 4 Cartesian waypoints.
 
-    Timing plan (30 s total):
-      [0, 2)   — dwell at home (start)
-      [2, 9)   — move home → ball_start
-      [9, 11)  — dwell at ball_start  (robot settles; ball picked up)
-      [11, 18) — move ball_start → ball_end
-      [18, 20) — dwell at ball_end    (robot settles; ball dropped)
-      [20, 27) — move ball_end → home
-      [27, 30] — dwell at home (end)
+    The simulation visits each waypoint in order: home → ball_start →
+    ball_end → home.  Your trajectory must give the robot enough time to
+    reach and settle at each waypoint before the 30-second budget expires.
+
+    You must create an output array that spans 30 seconds and returns a Trajectory class
+    The trajectory class can be found in RobBase.
+    To create the trajectory class, you need to add timestamps, joint poses, and joint velocities.
+    The simulation will access these values to simulate the dynamics that you must later control.
+
+    Args:
+        waypoints (np.ndarray): (4, 3) array of EE positions [mm].
+            waypoints[0] — home (start)
+            waypoints[1] — ball start  (robot picks up object here)
+            waypoints[2] — ball end    (robot drops object here)
+            waypoints[3] — home (end)
+
+    Returns:
+        Trajectory: A fully populated Trajectory object.
+
+    Trajectory API (see RobBase.py):
+        trajectory = Trajectory()
+        trajectory.set_timestamps(timesteps)          # 1-D array of times [s]
+        trajectory.set_joint_1_poses(q1_array)        # joint-1 angles [rad]
+        trajectory.set_joint_2_poses(q2_array)        # joint-2 angles [rad]
+        trajectory.set_joint_3_poses(q3_array)        # joint-3 angles [rad]
+        trajectory.set_joint_1_vels(qd1_array)        # joint-1 velocities [rad/s]
+        trajectory.set_joint_2_vels(qd2_array)        # joint-2 velocities [rad/s]
+        trajectory.set_joint_3_vels(qd3_array)        # joint-3 velocities [rad/s]
+
+    Tips:
+           - Use np.linspace to interpolate between consecutive waypoints.
+           - Add a dwell (repeated sampled) at the waypoints so the robot can settle
+
+    Important:
+        total_duration = 30.0  # seconds — DO NOT CHANGE
     """
     total_duration = 30.0  # DO NOT CHANGE
 
@@ -128,34 +155,48 @@ class RobStudent(RobSimulation):
                      timestep: float) -> np.ndarray:
     """PD controller with gravity feed-forward.
 
-    tau = -Kp*(theta - theta_ref) - Kd*(theta_dot - theta_dot_ref) + G(theta)
+    Called at every simulation timestep by simulate_rob.  Returns the
+    joint torques to apply
+
+    The function inputs are the current theta, theta_dot, and timestep.  You must combine
+    this with where the robot SHOULD be, accessed via self._traj, calculate the current error in position
+    and, using your gains, calculate the desired joint torques. 
+
+    To find where you think the robot SHOULD be, I used this for loop to calculate an interperator, then 
+    fed that interperter my current timestep 
+    for i in range(0,3):
+      inter_ref  = interp1d(self._traj.raw[0].T, self._traj.raw[i+1].T, fill_value="extrapolate")
+      inter_ref_dot = interp1d(self._traj.raw[0], self._traj.raw[i+4], fill_value="extrapolate")
+      theta_ref[i] = inter_ref(timestep)
+      theta_dot_ref[i] = inter_ref_dot(timestep)
+
+    using your reference values for theta and theta dot, you can calculate errors and create your controller. 
+    
+    Note: You may need to use different control values for P and D for different joints. 
+
+    Args:
+        theta (np.ndarray): (3,) current joint positions [rad].
+        theta_dot (np.ndarray): (3,) current joint velocities [rad/s].
+        timestep (float): current simulation time [s].
+
+    Returns:
+        np.ndarray: (3,) joint torques [N·m].
+
+    Tip:
+        - don't forget about gravity! 
     """
     # ── Interpolate desired state from trajectory ────────────────────────────
-    theta_ref     = np.zeros(3)
-    theta_dot_ref = np.zeros(3)
-    for i in range(3):
-      interp_pos = interp1d(self._traj.raw[0].T, self._traj.raw[i + 1].T,
-                            fill_value="extrapolate")
-      interp_vel = interp1d(self._traj.raw[0],   self._traj.raw[i + 4],
-                            fill_value="extrapolate")
-      theta_ref[i]     = interp_pos(timestep)
-      theta_dot_ref[i] = interp_vel(timestep)
+    theta_ref, theta_dot_ref = self._get_desired_state(timestep)
 
     # ── Gravity compensation ─────────────────────────────────────────────────
-    # Potential energy (with l in mm → convert to m):
-    #   z_c2 = l1 + (l2/2)*sin(θ2)
-    #   z_c3 = l1 + l2*sin(θ2) + lc3*cos(θ2+θ3)   [joint-3 offset = π/2]
-    #
-    # G[0] = ∂PE/∂θ1 = 0  (joint 1 rotates about vertical axis)
-    # G[1] = g*1e-3 * [m2*(l2/2)*cos(θ2) + m3*(l2*cos(θ2) - lc3*sin(θ2+θ3))]
-    # G[2] = g*1e-3 * m3 * (-lc3*sin(θ2+θ3))
+    # FK: z_ee = l1 + l2*sin(θ2) + l3*sin(θ2+θ3)
+    # PE = g*1e-3 * (m2*z_c2 + m3*z_c3)  [1e-3 converts mm → m]
+    # G[i] = ∂PE/∂θi
     t2  = theta[1]
     t3  = theta[2]
     c2  = np.cos(t2)
     c23 = np.cos(t2 + t3)
 
-    # FK: z_ee = l1 + l2*sin(θ2) + l3*sin(θ2+θ3)  (Modified DH convention)
-    # → ∂PE/∂θ2 uses l2*cos(θ2)+lc3*cos(θ2+θ3), ∂PE/∂θ3 uses lc3*cos(θ2+θ3)
     G = np.array([
         0.0,
         self.g * 1e-3 * (self.m2 * (self.l2 / 2.0) * c2
@@ -164,9 +205,12 @@ class RobStudent(RobSimulation):
     ])
 
     # ── PD gains ─────────────────────────────────────────────────────────────
-    # High gains ensure convergence within the 2-second dwell windows.
-    Kp = np.array([2000.0, 12000.0, 6000.0])
-    Kd = np.array([700.0,  2000.0,  1200.0])
+    # Gains are critically overdamped and numerically stable for dt=0.01 s.
+    # Euler eigenvalue analysis (A=[[1,dt],[-Kp*dt/M, 1-Kd*dt/M]]) confirms
+    # all |λ| < 1 for estimated M11≈12, M22≈13, M33≈1.63 kg·m².
+    # Settling time (5 × slow time-constant Kd/Kp) < 2 s for all joints.
+    Kp = np.array([2000.0, 3000.0, 1500.0])
+    Kd = np.array([ 400.0,  700.0,  160.0])
 
     # ── Torque ───────────────────────────────────────────────────────────────
     pos_err = theta     - theta_ref
@@ -174,11 +218,3 @@ class RobStudent(RobSimulation):
 
     tau = -Kp * pos_err - Kd * vel_err + G
     return tau
-
-
-# ── Helper ─────────────────────────────────────────────────────────────────────
-
-def _smooth(alpha: float) -> float:
-  """Smooth-step function: maps [0,1] → [0,1] with zero first derivative at ends."""
-  alpha = np.clip(alpha, 0.0, 1.0)
-  return alpha * alpha * (3.0 - 2.0 * alpha)
