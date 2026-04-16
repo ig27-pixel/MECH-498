@@ -297,29 +297,21 @@ class RRBot(object):
     # Frequently used intermediate value
     r = self._l_1 + self._Lc2 * c2   # (L1 + Lc2*cos(θ2))
 
-    # --- Mass / inertia matrix M (2x2) ---
-    # From Lagrangian derivation (lab eq. 1):
-    #   τ1: (M1*Lc1² + M2*r² + I1 + I2)*θ̈1
-    #   τ2: (M2*Lc2²  + I2)*θ̈2
+    # Mass/inertia matrix M (2x2)
     m11 = self._M1 * self._Lc1 ** 2 + self._M2 * r ** 2 + self._I1 + self._I2
     m22 = self._M2 * self._Lc2 ** 2 + self._I2
 
     self.M = np.array([[m11, 0.0],
                        [0.0, m22]])
 
-    # --- Coriolis / centrifugal vector C (2x1) ---
-    # From lab eq. 1 velocity-dependent terms:
-    #   τ1: -2*M2*Lc2*s2*r * θ̇1*θ̇2
-    #   τ2: +M2*Lc2*s2*r  * θ̇1²
+    # Coriolis / centrifugal vector C (2x1)
     c1_val = -2.0 * self._M2 * self._Lc2 * s2 * r * theta1_dot * theta2_dot
     c2_val =        self._M2 * self._Lc2 * s2 * r * theta1_dot ** 2
 
     self.C = np.array([[c1_val],
                        [c2_val]])
 
-    # --- Gravity vector G (2x1) ---
-    # Joint 1 rotates about Z — link 1 CoM stays at z=0, no gravity term.
-    # Joint 2 raises/lowers link 2 CoM: ∂PE/∂θ2 = M2*g*Lc2*cos(θ2)
+    # Gravity vector G (2x1)
     self.G = np.array([[0.0],
                        [self._M2 * self._g * self._Lc2 * c2]])
 
@@ -340,13 +332,10 @@ class RRBot(object):
     self.update_dynamics(js1, js2)
 
     # Kinetic energy: KE = ½ θ̇ᵀ M θ̇
-    # M is diagonal, so KE = ½(M11*θ̇1² + M22*θ̇2²)
     theta_dot = np.array([[js1.vel], [js2.vel]])
     KE = 0.5 * float(theta_dot.T @ self.M @ theta_dot)
 
     # Potential energy: PE = M2*g*Lc2*sin(θ2)
-    # (Link 1 CoM is always at z=0 since joint 1 rotates about Z)
-    # Integrating G[1] = M2*g*Lc2*cos(θ2) w.r.t. θ2 gives this expression.
     PE = self._M2 * self._g * self._Lc2 * np.sin(js2.pos)
 
     E_total = KE + PE
@@ -382,8 +371,7 @@ class RRBot(object):
     """
     self.clear_history()  # Clear any existing data from previous runs
 
-    # ---- Initial conditions: θ1=π/3, θ2=π/4, at rest ----
-    # NOTE: π/2 is an unstable equilibrium (cos(π/2)=0 → G[1]=0, robot never moves)
+    # Initial conditions: θ1=π/3, θ2=π/4, at rest
     curr_js1 = JointState(position=math.pi / 3, velocity=0.0, acceleration=0.0)
     curr_js2 = JointState(position=math.pi / 4, velocity=0.0, acceleration=0.0)
 
@@ -449,10 +437,6 @@ class RRBot(object):
     via test_setpoint_1_underdamped().
     """
     # Underdamped: choose ζ ≈ 0.1-0.2 so the response clearly oscillates.
-    # With M11≈29, M22≈13 and Kp=50:
-    #   ζ₁ = 10 / (2√(50·29)) ≈ 0.13  (joint 1)
-    #   ζ₂ = 10 / (2√(50·13)) ≈ 0.20  (joint 2)
-    # Period ≈ 3-5 s → ≥2 sign changes within the 5 s window.
     self._kp = 50.0
     self._kv = 10.0
 
@@ -471,11 +455,6 @@ class RRBot(object):
     end of the 5-second simulation.
     """
     # Critically damped / overdamped: ζ ≥ 1 for both joints.
-    # With M11≈29, M22≈13 and Kp=400:
-    #   ζ₁ = 350 / (2√(400·29)) ≈ 1.62  (clearly overdamped, 0 sign changes)
-    #   ζ₂ = 350 / (2√(400·13)) ≈ 2.43  (clearly overdamped)
-    # Gravity steady-state error at θ2d=1.3:
-    #   e_ss ≈ 22.8/(400−82) ≈ 0.072 rad < 0.1 rad tolerance ✓
     self._kp = 500.0
     self._kv = 400.0
 

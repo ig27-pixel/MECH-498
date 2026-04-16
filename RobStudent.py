@@ -104,19 +104,19 @@ class RobStudent(RobSimulation):
         q = q0.copy()
       elif t < t_arrive1:
         alpha = (t - t_dwell0_end) / (t_arrive1 - t_dwell0_end)
-        alpha = _smooth(alpha)
+        alpha = alpha * alpha * (3.0 - 2.0 * alpha)
         q = q0 + alpha * (q1 - q0)
       elif t < t_dwell1_end:
         q = q1.copy()                        # dwell at ball_start
       elif t < t_arrive2:
         alpha = (t - t_dwell1_end) / (t_arrive2 - t_dwell1_end)
-        alpha = _smooth(alpha)
+        alpha = alpha * alpha * (3.0 - 2.0 * alpha)
         q = q1 + alpha * (q2 - q1)
       elif t < t_dwell2_end:
         q = q2.copy()                        # dwell at ball_end
       elif t < t_arrive3:
         alpha = (t - t_dwell2_end) / (t_arrive3 - t_dwell2_end)
-        alpha = _smooth(alpha)
+        alpha = alpha * alpha * (3.0 - 2.0 * alpha)
         q = q2 + alpha * (q3 - q2)
       else:
         q = q3.copy()                        # final dwell at home
