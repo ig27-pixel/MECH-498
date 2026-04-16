@@ -186,12 +186,19 @@ class RobStudent(RobSimulation):
         - don't forget about gravity! 
     """
     # ── Interpolate desired state from trajectory ────────────────────────────
-    theta_ref, theta_dot_ref = self._get_desired_state(timestep)
+    theta_ref     = np.zeros(3)
+    theta_dot_ref = np.zeros(3)
+    for i in range(0, 3):
+      inter_ref     = interp1d(self._traj.raw[0].T, self._traj.raw[i + 1].T,
+                               fill_value="extrapolate")
+      inter_ref_dot = interp1d(self._traj.raw[0],   self._traj.raw[i + 4],
+                               fill_value="extrapolate")
+      theta_ref[i]     = inter_ref(timestep)
+      theta_dot_ref[i] = inter_ref_dot(timestep)
 
     # ── Gravity compensation ─────────────────────────────────────────────────
     # FK: z_ee = l1 + l2*sin(θ2) + l3*sin(θ2+θ3)
-    # PE = g*1e-3 * (m2*z_c2 + m3*z_c3)  [1e-3 converts mm → m]
-    # G[i] = ∂PE/∂θi
+    # G[i] = ∂PE/∂θi  (PE in SI via 1e-3 mm→m)
     t2  = theta[1]
     t3  = theta[2]
     c2  = np.cos(t2)
@@ -205,16 +212,15 @@ class RobStudent(RobSimulation):
     ])
 
     # ── PD gains ─────────────────────────────────────────────────────────────
-    # Gains are critically overdamped and numerically stable for dt=0.01 s.
-    # Euler eigenvalue analysis (A=[[1,dt],[-Kp*dt/M, 1-Kd*dt/M]]) confirms
-    # all |λ| < 1 for estimated M11≈12, M22≈13, M33≈1.63 kg·m².
-    # Settling time (5 × slow time-constant Kd/Kp) < 2 s for all joints.
-    Kp = np.array([2000.0, 3000.0, 1500.0])
-    Kd = np.array([ 400.0,  700.0,  160.0])
+    Kp = np.array([1000.0, 1500.0, 1000.0])
+    Kd = np.array([ 300.0,  450.0,   80.0])
 
     # ── Torque ───────────────────────────────────────────────────────────────
     pos_err = theta     - theta_ref
     vel_err = theta_dot - theta_dot_ref
 
     tau = -Kp * pos_err - Kd * vel_err + G
+
+    # Store so _calculate_rob_dynamics picks it up via self._last_tau
+    self._last_tau = tau
     return tau
