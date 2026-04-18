@@ -119,63 +119,8 @@ class RobStudent(RobSimulation):
 
   def get_rob_torque(self, theta: np.ndarray, theta_dot: np.ndarray,
                      timestep: float) -> np.ndarray:
-    """PD controller with gravity feed-forward."""
+    """Gravity feed-forward compensation (C++ handles PD internally)."""
 
-    # ── Internal time tracking ───────────────────────────────────────────────
-    # Use both self._ctrl_step (robust to any timestep units) AND
-    # timestep directly (in case C++ passes correct seconds).
-    # Pick whichever gives a time in [0, 30].
-    t_from_step = self._ctrl_step * self._dt
-    t_from_arg  = float(timestep)
-    # If arg looks like a valid time in seconds, use it; else use step counter
-    if 0.0 <= t_from_arg <= 30.0:
-      t = t_from_arg
-    else:
-      t = t_from_step
-    self._ctrl_step += 1
-
-    # ── Reference from stored IK angles (no self._traj dependency) ───────────
-    q0, q1, q2, q3 = self._ik_angles
-    (dw0e, arr1, dw1e, arr2, dw2e, arr3) = self._t_seg
-
-    def smoothstep(s):
-      return s * s * (3.0 - 2.0 * s)
-
-    def d_smoothstep(s, inv_dur):
-      return (6.0 * s - 6.0 * s * s) * inv_dur
-
-    if t < dw0e:
-      theta_ref     = q0.copy()
-      theta_dot_ref = np.zeros(3)
-    elif t < arr1:
-      s   = (t - dw0e) / (arr1 - dw0e)
-      a   = smoothstep(s)
-      dadt = d_smoothstep(s, 1.0 / (arr1 - dw0e))
-      theta_ref     = q0 + a * (q1 - q0)
-      theta_dot_ref = dadt * (q1 - q0)
-    elif t < dw1e:
-      theta_ref     = q1.copy()
-      theta_dot_ref = np.zeros(3)
-    elif t < arr2:
-      s   = (t - dw1e) / (arr2 - dw1e)
-      a   = smoothstep(s)
-      dadt = d_smoothstep(s, 1.0 / (arr2 - dw1e))
-      theta_ref     = q1 + a * (q2 - q1)
-      theta_dot_ref = dadt * (q2 - q1)
-    elif t < dw2e:
-      theta_ref     = q2.copy()
-      theta_dot_ref = np.zeros(3)
-    elif t < arr3:
-      s   = (t - dw2e) / (arr3 - dw2e)
-      a   = smoothstep(s)
-      dadt = d_smoothstep(s, 1.0 / (arr3 - dw2e))
-      theta_ref     = q2 + a * (q3 - q2)
-      theta_dot_ref = dadt * (q3 - q2)
-    else:
-      theta_ref     = q3.copy()
-      theta_dot_ref = np.zeros(3)
-
-    # ── Gravity compensation ─────────────────────────────────────────────────
     t2  = theta[1]
     t3  = theta[2]
     c2  = np.cos(t2)
@@ -188,15 +133,5 @@ class RobStudent(RobSimulation):
         self.g * 1e-3 * self.m3 * self.lc3 * c23,
     ])
 
-    # ── PD gains ─────────────────────────────────────────────────────────────
-    Kp = np.array([8000.0, 12000.0, 6000.0])
-    Kd = np.array([ 800.0,  1500.0,  500.0])
-
-    # ── Torque ───────────────────────────────────────────────────────────────
-    pos_err = theta     - theta_ref
-    vel_err = theta_dot - theta_dot_ref
-
-    tau = -Kp * pos_err - Kd * vel_err + G
-
-    self._last_tau = tau
-    return tau
+    self._last_tau = G
+    return G
