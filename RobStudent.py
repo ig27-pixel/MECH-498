@@ -15,7 +15,6 @@ call both of these methods automatically — you only need to implement them.
 from copy import deepcopy
 
 import numpy as np
-from scipy.interpolate import interp1d
 
 from RobBase import Trajectory
 from RobSimulation import RobSimulation
@@ -188,13 +187,11 @@ class RobStudent(RobSimulation):
     # ── Interpolate desired state from trajectory ────────────────────────────
     theta_ref     = np.zeros(3)
     theta_dot_ref = np.zeros(3)
+    traj_times = self._traj.raw[0]
+    t_clamped  = np.clip(timestep, traj_times[0], traj_times[-1])
     for i in range(0, 3):
-      inter_ref     = interp1d(self._traj.raw[0].T, self._traj.raw[i + 1].T,
-                               fill_value="extrapolate")
-      inter_ref_dot = interp1d(self._traj.raw[0],   self._traj.raw[i + 4],
-                               fill_value="extrapolate")
-      theta_ref[i]     = inter_ref(timestep)
-      theta_dot_ref[i] = inter_ref_dot(timestep)
+      theta_ref[i]     = np.interp(t_clamped, traj_times, self._traj.raw[i + 1])
+      theta_dot_ref[i] = np.interp(t_clamped, traj_times, self._traj.raw[i + 4])
 
     # ── Gravity compensation ─────────────────────────────────────────────────
     # FK: z_ee = l1 + l2*sin(θ2) + l3*sin(θ2+θ3)
@@ -212,8 +209,8 @@ class RobStudent(RobSimulation):
     ])
 
     # ── PD gains ─────────────────────────────────────────────────────────────
-    Kp = np.array([1000.0, 1500.0, 1000.0])
-    Kd = np.array([ 300.0,  450.0,   80.0])
+    Kp = np.array([8000.0, 12000.0, 6000.0])
+    Kd = np.array([ 800.0,  1500.0,  500.0])
 
     # ── Torque ───────────────────────────────────────────────────────────────
     pos_err = theta     - theta_ref
