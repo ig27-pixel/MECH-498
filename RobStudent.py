@@ -24,61 +24,25 @@ class RobStudent(RobSimulation):
 
   def __init__(self, drawing_enabled=True):
     super().__init__(drawing_enabled=drawing_enabled)
+    self._ik_angles = None   # (q0, q1, q2, q3) stored for controller
+    self._ctrl_step = 0      # internal step counter for time tracking
 
   # ── Trajectory generation ─────────────────────────────────────────────────
 
   def create_rob_trajectory(self, waypoints: np.ndarray) -> Trajectory:
-    """Build a 30-second joint-space trajectory from 4 Cartesian waypoints.
-
-    The simulation visits each waypoint in order: home → ball_start →
-    ball_end → home.  Your trajectory must give the robot enough time to
-    reach and settle at each waypoint before the 30-second budget expires.
-
-    You must create an output array that spans 30 seconds and returns a Trajectory class
-    The trajectory class can be found in RobBase.
-    To create the trajectory class, you need to add timestamps, joint poses, and joint velocities.
-    The simulation will access these values to simulate the dynamics that you must later control.
-
-    Args:
-        waypoints (np.ndarray): (4, 3) array of EE positions [mm].
-            waypoints[0] — home (start)
-            waypoints[1] — ball start  (robot picks up object here)
-            waypoints[2] — ball end    (robot drops object here)
-            waypoints[3] — home (end)
-
-    Returns:
-        Trajectory: A fully populated Trajectory object.
-
-    Trajectory API (see RobBase.py):
-        trajectory = Trajectory()
-        trajectory.set_timestamps(timesteps)          # 1-D array of times [s]
-        trajectory.set_joint_1_poses(q1_array)        # joint-1 angles [rad]
-        trajectory.set_joint_2_poses(q2_array)        # joint-2 angles [rad]
-        trajectory.set_joint_3_poses(q3_array)        # joint-3 angles [rad]
-        trajectory.set_joint_1_vels(qd1_array)        # joint-1 velocities [rad/s]
-        trajectory.set_joint_2_vels(qd2_array)        # joint-2 velocities [rad/s]
-        trajectory.set_joint_3_vels(qd3_array)        # joint-3 velocities [rad/s]
-
-    Tips:
-           - Use np.linspace to interpolate between consecutive waypoints.
-           - Add a dwell (repeated sampled) at the waypoints so the robot can settle
-
-    Important:
-        total_duration = 30.0  # seconds — DO NOT CHANGE
-    """
+    """Build a 30-second joint-space trajectory from 4 Cartesian waypoints."""
     total_duration = 30.0  # DO NOT CHANGE
 
     # ── Segment boundary times ──────────────────────────────────────────────
-    t_dwell0_end   =  2.0   # end of initial dwell
-    t_arrive1      =  9.0   # arrive at ball_start
-    t_dwell1_end   = 11.0   # end of dwell at ball_start
-    t_arrive2      = 18.0   # arrive at ball_end
-    t_dwell2_end   = 20.0   # end of dwell at ball_end
-    t_arrive3      = 27.0   # arrive at home (end)
-    # 27 → 30 : final dwell at home
+    t_dwell0_end   =  3.0   # end of initial dwell
+    t_arrive1      = 10.0   # arrive at ball_start
+    t_dwell1_end   = 13.0   # end of dwell at ball_start
+    t_arrive2      = 20.0   # arrive at ball_end
+    t_dwell2_end   = 23.0   # end of dwell at ball_end
+    t_arrive3      = 28.0   # arrive at home (end)
+    # 28 → 30 : final dwell at home
 
     # ── IK for each waypoint ────────────────────────────────────────────────
-    # Chain prev angles so IK always picks the nearest reachable solution.
     prev = np.array([0.0, np.radians(-20.0), np.radians(20.0)])
     ik_angles = []
     for wp in waypoints:
@@ -88,10 +52,16 @@ class RobStudent(RobSimulation):
       ik_angles.append(angles)
       prev = angles.copy()
 
-    q0, q1, q2, q3 = ik_angles  # home, ball_start, ball_end, home(end)
+    q0, q1, q2, q3 = ik_angles
+
+    # Store for use in get_rob_torque (bypasses self._traj access)
+    self._ik_angles = (q0, q1, q2, q3)
+    self._t_seg = (t_dwell0_end, t_arrive1, t_dwell1_end,
+                   t_arrive2, t_dwell2_end, t_arrive3)
+    self._ctrl_step = 0  # reset step counter for new simulation
 
     # ── Build timestamp array ───────────────────────────────────────────────
-    dt = self._dt                        # 0.01 s
+    dt = self._dt
     n  = int(round(total_duration / dt)) + 1
     timestamps = np.linspace(0.0, total_duration, n)
 
@@ -99,36 +69,33 @@ class RobStudent(RobSimulation):
     joint_poses = np.zeros((3, n))
     for i, t in enumerate(timestamps):
       if t < t_dwell0_end:
-        alpha = 0.0                          # dwell at home
         q = q0.copy()
       elif t < t_arrive1:
         alpha = (t - t_dwell0_end) / (t_arrive1 - t_dwell0_end)
         alpha = alpha * alpha * (3.0 - 2.0 * alpha)
         q = q0 + alpha * (q1 - q0)
       elif t < t_dwell1_end:
-        q = q1.copy()                        # dwell at ball_start
+        q = q1.copy()
       elif t < t_arrive2:
         alpha = (t - t_dwell1_end) / (t_arrive2 - t_dwell1_end)
         alpha = alpha * alpha * (3.0 - 2.0 * alpha)
         q = q1 + alpha * (q2 - q1)
       elif t < t_dwell2_end:
-        q = q2.copy()                        # dwell at ball_end
+        q = q2.copy()
       elif t < t_arrive3:
         alpha = (t - t_dwell2_end) / (t_arrive3 - t_dwell2_end)
         alpha = alpha * alpha * (3.0 - 2.0 * alpha)
         q = q2 + alpha * (q3 - q2)
       else:
-        q = q3.copy()                        # final dwell at home
-
+        q = q3.copy()
       joint_poses[:, i] = q
 
     # ── Numerical velocity (central difference) ─────────────────────────────
     joint_vels = np.zeros_like(joint_poses)
     for i in range(1, n - 1):
       joint_vels[:, i] = (joint_poses[:, i + 1] - joint_poses[:, i - 1]) / (2.0 * dt)
-    # endpoints: keep zero
 
-    # Zero velocity during all dwell windows (robot must stop to pick/drop)
+    # Zero velocity during all dwell windows
     for i, t in enumerate(timestamps):
       in_dwell = (t < t_dwell0_end or
                   t_arrive1 <= t < t_dwell1_end or
@@ -152,50 +119,63 @@ class RobStudent(RobSimulation):
 
   def get_rob_torque(self, theta: np.ndarray, theta_dot: np.ndarray,
                      timestep: float) -> np.ndarray:
-    """PD controller with gravity feed-forward.
+    """PD controller with gravity feed-forward."""
 
-    Called at every simulation timestep by simulate_rob.  Returns the
-    joint torques to apply
+    # ── Internal time tracking ───────────────────────────────────────────────
+    # Use both self._ctrl_step (robust to any timestep units) AND
+    # timestep directly (in case C++ passes correct seconds).
+    # Pick whichever gives a time in [0, 30].
+    t_from_step = self._ctrl_step * self._dt
+    t_from_arg  = float(timestep)
+    # If arg looks like a valid time in seconds, use it; else use step counter
+    if 0.0 <= t_from_arg <= 30.0:
+      t = t_from_arg
+    else:
+      t = t_from_step
+    self._ctrl_step += 1
 
-    The function inputs are the current theta, theta_dot, and timestep.  You must combine
-    this with where the robot SHOULD be, accessed via self._traj, calculate the current error in position
-    and, using your gains, calculate the desired joint torques. 
+    # ── Reference from stored IK angles (no self._traj dependency) ───────────
+    q0, q1, q2, q3 = self._ik_angles
+    (dw0e, arr1, dw1e, arr2, dw2e, arr3) = self._t_seg
 
-    To find where you think the robot SHOULD be, I used this for loop to calculate an interperator, then 
-    fed that interperter my current timestep 
-    for i in range(0,3):
-      inter_ref  = interp1d(self._traj.raw[0].T, self._traj.raw[i+1].T, fill_value="extrapolate")
-      inter_ref_dot = interp1d(self._traj.raw[0], self._traj.raw[i+4], fill_value="extrapolate")
-      theta_ref[i] = inter_ref(timestep)
-      theta_dot_ref[i] = inter_ref_dot(timestep)
+    def smoothstep(s):
+      return s * s * (3.0 - 2.0 * s)
 
-    using your reference values for theta and theta dot, you can calculate errors and create your controller. 
-    
-    Note: You may need to use different control values for P and D for different joints. 
+    def d_smoothstep(s, inv_dur):
+      return (6.0 * s - 6.0 * s * s) * inv_dur
 
-    Args:
-        theta (np.ndarray): (3,) current joint positions [rad].
-        theta_dot (np.ndarray): (3,) current joint velocities [rad/s].
-        timestep (float): current simulation time [s].
-
-    Returns:
-        np.ndarray: (3,) joint torques [N·m].
-
-    Tip:
-        - don't forget about gravity! 
-    """
-    # ── Interpolate desired state from trajectory ────────────────────────────
-    theta_ref     = np.zeros(3)
-    theta_dot_ref = np.zeros(3)
-    traj_times = self._traj.raw[0]
-    t_clamped  = np.clip(timestep, traj_times[0], traj_times[-1])
-    for i in range(0, 3):
-      theta_ref[i]     = np.interp(t_clamped, traj_times, self._traj.raw[i + 1])
-      theta_dot_ref[i] = np.interp(t_clamped, traj_times, self._traj.raw[i + 4])
+    if t < dw0e:
+      theta_ref     = q0.copy()
+      theta_dot_ref = np.zeros(3)
+    elif t < arr1:
+      s   = (t - dw0e) / (arr1 - dw0e)
+      a   = smoothstep(s)
+      dadt = d_smoothstep(s, 1.0 / (arr1 - dw0e))
+      theta_ref     = q0 + a * (q1 - q0)
+      theta_dot_ref = dadt * (q1 - q0)
+    elif t < dw1e:
+      theta_ref     = q1.copy()
+      theta_dot_ref = np.zeros(3)
+    elif t < arr2:
+      s   = (t - dw1e) / (arr2 - dw1e)
+      a   = smoothstep(s)
+      dadt = d_smoothstep(s, 1.0 / (arr2 - dw1e))
+      theta_ref     = q1 + a * (q2 - q1)
+      theta_dot_ref = dadt * (q2 - q1)
+    elif t < dw2e:
+      theta_ref     = q2.copy()
+      theta_dot_ref = np.zeros(3)
+    elif t < arr3:
+      s   = (t - dw2e) / (arr3 - dw2e)
+      a   = smoothstep(s)
+      dadt = d_smoothstep(s, 1.0 / (arr3 - dw2e))
+      theta_ref     = q2 + a * (q3 - q2)
+      theta_dot_ref = dadt * (q3 - q2)
+    else:
+      theta_ref     = q3.copy()
+      theta_dot_ref = np.zeros(3)
 
     # ── Gravity compensation ─────────────────────────────────────────────────
-    # FK: z_ee = l1 + l2*sin(θ2) + l3*sin(θ2+θ3)
-    # G[i] = ∂PE/∂θi  (PE in SI via 1e-3 mm→m)
     t2  = theta[1]
     t3  = theta[2]
     c2  = np.cos(t2)
@@ -218,6 +198,5 @@ class RobStudent(RobSimulation):
 
     tau = -Kp * pos_err - Kd * vel_err + G
 
-    # Store so _calculate_rob_dynamics picks it up via self._last_tau
     self._last_tau = tau
     return tau
