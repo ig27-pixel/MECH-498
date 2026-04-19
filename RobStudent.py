@@ -120,7 +120,9 @@ class RobStudent(RobSimulation):
 
   def get_rob_torque(self, theta: np.ndarray, theta_dot: np.ndarray,
                      timestep: float) -> np.ndarray:
-    """Gravity feed-forward compensation (C++ handles PD internally)."""
+    """PD + gravity feed-forward torque."""
+    t = float(timestep)
+    theta_ref, theta_dot_ref = self._get_desired_state(t)
 
     t2  = theta[1]
     t3  = theta[2]
@@ -134,5 +136,10 @@ class RobStudent(RobSimulation):
         self.g * 1e-3 * self.m3 * self.lc3 * c23,
     ])
 
-    self._last_tau = G
-    return G
+    # Gains sized for ~6 rad/s natural frequency (M22 ≈ 8 kg·m²)
+    Kp = np.array([150.0, 300.0, 150.0])
+    Kd = np.array([ 25.0, 100.0,  50.0])
+
+    tau = Kp * (theta_ref - theta) + Kd * (theta_dot_ref - theta_dot) + G
+    self._last_tau = tau
+    return tau
