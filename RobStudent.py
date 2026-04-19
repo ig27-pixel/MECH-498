@@ -136,9 +136,9 @@ class RobStudent(RobSimulation):
         self.g * 1e-3 * self.m3 * self.lc3 * c23,
     ])
 
-    # Gains sized for ~6 rad/s natural frequency (M22 ≈ 8 kg·m²)
-    Kp = np.array([150.0, 300.0, 150.0])
-    Kd = np.array([ 25.0, 100.0,  50.0])
+    # Joint 2: ωn≈12 rad/s (M22≈8), critically damped; Joint 3: ωn≈19 rad/s (M33≈1.7), overdamped
+    Kp = np.array([300.0, 1200.0, 600.0])
+    Kd = np.array([ 60.0,  200.0, 100.0])
 
     tau = Kp * (theta_ref - theta) + Kd * (theta_dot_ref - theta_dot) + G
     self._last_tau = tau
