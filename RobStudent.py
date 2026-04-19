@@ -116,70 +116,11 @@ class RobStudent(RobSimulation):
     traj.set_joint_3_vels(joint_vels[2])
     return traj
 
-  # ── Simulation loop override ──────────────────────────────────────────────
-
-  def simulate_rob(self, waypoints):
-    """Python Euler integration loop — bypasses C++ simulate to avoid re-entrancy."""
-    import rob_dynamics
-    from rob_data import MotionData, Data
-
-    self._data     = Data()
-    self._last_tau = np.zeros(3)
-    self._traj     = self.create_rob_trajectory(waypoints)
-
-    dt         = self._dt
-    n_steps    = len(self._traj.timesteps) - 1
-    t_arrive1  = 10.0   # nominal pickup time
-    t_arrive2  = 20.0   # nominal drop time
-
-    theta     = np.array([
-        self._traj.joint_1_poses[0],
-        self._traj.joint_2_poses[0],
-        self._traj.joint_3_poses[0],
-    ], dtype=float)
-    theta_dot = np.zeros(3)
-
-    pickup_step = -1
-    drop_step   = -1
-
-    for step in range(n_steps + 1):
-      t = step * dt
-
-      tau = self.get_rob_torque(theta, theta_dot, t)
-
-      self.calculate_fk(theta)
-      ee_frame = self.ee_frame.copy()
-
-      theta_des, theta_dot_des = self._get_desired_state(t)
-
-      state      = np.concatenate([theta, theta_dot])
-      theta_ddot = rob_dynamics.calculate(state, tau, self.m4)
-
-      self._data.append(MotionData(
-          t, theta.copy(), theta_dot.copy(),
-          theta_ddot.copy(), tau.copy(),
-          theta_des, theta_dot_des, ee_frame,
-      ))
-
-      if pickup_step < 0 and t >= t_arrive1:
-        pickup_step = step
-      if drop_step < 0 and t >= t_arrive2:
-        drop_step = step
-
-      theta     = theta     + theta_dot  * dt
-      theta_dot = theta_dot + theta_ddot * dt
-
-    if self._drawing_enabled:
-      self._draw_simulation(waypoints, pickup_step, drop_step)
-      self._data.plot_all(waypoints=waypoints)
-
   # ── Control law ───────────────────────────────────────────────────────────
 
   def get_rob_torque(self, theta: np.ndarray, theta_dot: np.ndarray,
                      timestep: float) -> np.ndarray:
-    """PD + gravity feed-forward torque."""
-    t = float(timestep)
-    theta_ref, theta_dot_ref = self._get_desired_state(t)
+    """Gravity feed-forward compensation (C++ handles PD internally)."""
 
     t2  = theta[1]
     t3  = theta[2]
@@ -193,9 +134,5 @@ class RobStudent(RobSimulation):
         self.g * 1e-3 * self.m3 * self.lc3 * c23,
     ])
 
-    Kp = np.array([500.0, 1200.0, 600.0])
-    Kd = np.array([100.0,  200.0, 100.0])
-
-    tau = Kp * (theta_ref - theta) + Kd * (theta_dot_ref - theta_dot) + G
-    self._last_tau = tau
-    return tau
+    self._last_tau = G
+    return G
