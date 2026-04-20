@@ -122,7 +122,34 @@ class RobStudent(RobSimulation):
                      timestep: float) -> np.ndarray:
     """PD + gravity feed-forward torque."""
     t = float(timestep)
-    theta_ref, theta_dot_ref = self._get_desired_state(t)
+
+    # Compute desired state directly from stored segment data
+    if self._ik_angles is not None:
+      q0, q1, q2, q3 = self._ik_angles
+      t0e, t1, t1e, t2a, t2e, t3a = self._t_seg  # boundary times
+
+      def _seg(qa, qb, t_start, t_end, t_cur):
+        s = (t_cur - t_start) / (t_end - t_start)
+        alpha = s * s * (3.0 - 2.0 * s)
+        d_alpha = 6.0 * s * (1.0 - s) / (t_end - t_start)
+        return qa + alpha * (qb - qa), (qb - qa) * d_alpha
+
+      if t <= t0e:
+        theta_ref, theta_dot_ref = q0.copy(), np.zeros(3)
+      elif t <= t1:
+        theta_ref, theta_dot_ref = _seg(q0, q1, t0e, t1, t)
+      elif t <= t1e:
+        theta_ref, theta_dot_ref = q1.copy(), np.zeros(3)
+      elif t <= t2a:
+        theta_ref, theta_dot_ref = _seg(q1, q2, t1e, t2a, t)
+      elif t <= t2e:
+        theta_ref, theta_dot_ref = q2.copy(), np.zeros(3)
+      elif t <= t3a:
+        theta_ref, theta_dot_ref = _seg(q2, q3, t2e, t3a, t)
+      else:
+        theta_ref, theta_dot_ref = q3.copy(), np.zeros(3)
+    else:
+      theta_ref, theta_dot_ref = self._get_desired_state(t)
 
     t2  = theta[1]
     t3  = theta[2]
@@ -136,9 +163,8 @@ class RobStudent(RobSimulation):
         self.g * 1e-3 * self.m3 * self.lc3 * c23,
     ])
 
-    # Gains sized for ~6 rad/s natural frequency (M22 ≈ 8 kg·m²)
     Kp = np.array([150.0, 300.0, 150.0])
-    Kd = np.array([ 25.0, 100.0,  50.0])
+    Kd = np.array([ 40.0, 100.0,  50.0])
 
     tau = Kp * (theta_ref - theta) + Kd * (theta_dot_ref - theta_dot) + G
     self._last_tau = tau
