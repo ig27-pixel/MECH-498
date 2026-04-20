@@ -35,13 +35,13 @@ class RobStudent(RobSimulation):
     total_duration = 30.0  # DO NOT CHANGE
 
     # ── Segment boundary times ──────────────────────────────────────────────
-    t_dwell0_end   =  3.0   # end of initial dwell
-    t_arrive1      = 10.0   # arrive at ball_start
-    t_dwell1_end   = 13.0   # end of dwell at ball_start
-    t_arrive2      = 20.0   # arrive at ball_end
-    t_dwell2_end   = 23.0   # end of dwell at ball_end
-    t_arrive3      = 28.0   # arrive at home (end)
-    # 28 → 30 : final dwell at home
+    t_dwell0_end   =  2.0   # end of initial dwell
+    t_arrive1      =  9.0   # arrive at ball_start
+    t_dwell1_end   = 12.0   # end of dwell at ball_start
+    t_arrive2      = 20.0   # arrive at ball_end (8 s travel — more time for harder leg)
+    t_dwell2_end   = 26.0   # end of dwell at ball_end (6 s dwell — more convergence time)
+    t_arrive3      = 29.0   # arrive at home (end)
+    # 29 → 30 : final dwell at home
 
     # ── IK for each waypoint ────────────────────────────────────────────────
     prev = np.array([0.0, np.radians(-20.0), np.radians(20.0)])
