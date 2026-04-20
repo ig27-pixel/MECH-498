@@ -47,11 +47,25 @@ class RobStudent(RobSimulation):
     prev = np.array([0.0, np.radians(-20.0), np.radians(20.0)])
     ik_angles = []
     for wp in waypoints:
-      success, angles = self.calculate_ik(wp, prev)
-      if not success:
-        angles = prev.copy()
-      ik_angles.append(angles)
-      prev = angles.copy()
+      wp_arr = np.asarray(wp, dtype=float)
+      # Try multiple seeds and keep the solution whose FK is closest to wp
+      theta1_direct = np.arctan2(wp_arr[1], wp_arr[0])
+      seeds = [
+          prev,
+          np.array([theta1_direct,        prev[1],  prev[2]]),
+          np.array([theta1_direct + np.pi, -prev[1], prev[2]]),
+      ]
+      best_angles, best_err = prev.copy(), float('inf')
+      for seed in seeds:
+        s, a = self.calculate_ik(wp_arr, seed)
+        if not s:
+          continue
+        self.calculate_fk(a)
+        err = np.linalg.norm(self.ee_pos - wp_arr)
+        if err < best_err:
+          best_err, best_angles = err, a.copy()
+      ik_angles.append(best_angles)
+      prev = best_angles.copy()
 
     q0, q1, q2, q3 = ik_angles
 
