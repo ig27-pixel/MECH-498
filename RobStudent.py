@@ -38,9 +38,9 @@ class RobStudent(RobSimulation):
     t_dwell0_end   =  2.0   # end of initial dwell
     t_arrive1      =  9.0   # arrive at ball_start
     t_dwell1_end   = 12.0   # end of dwell at ball_start
-    t_arrive2      = 20.0   # arrive at ball_end (8 s travel — more time for harder leg)
-    t_dwell2_end   = 26.0   # end of dwell at ball_end (6 s dwell — more convergence time)
-    t_arrive3      = 29.0   # arrive at home (end)
+    t_arrive2      = 20.0   # arrive at ball_end
+    t_dwell2_end   = 27.0   # end of dwell at ball_end (7 s dwell — more convergence time)
+    t_arrive3      = 29.5   # arrive at home (end)
     # 29 → 30 : final dwell at home
 
     # ── IK for each waypoint ────────────────────────────────────────────────
@@ -177,8 +177,8 @@ class RobStudent(RobSimulation):
         self.g * 1e-3 * self.m3 * self.lc3 * c23,
     ])
 
-    Kp = np.array([150.0, 300.0, 150.0])
-    Kd = np.array([ 40.0, 100.0,  50.0])
+    Kp = np.array([300.0, 600.0, 300.0])
+    Kd = np.array([100.0, 300.0, 150.0])
 
     tau = Kp * (theta_ref - theta) + Kd * (theta_dot_ref - theta_dot) + G
     self._last_tau = tau
