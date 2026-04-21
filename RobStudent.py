@@ -27,6 +27,8 @@ class RobStudent(RobSimulation):
     super().__init__(drawing_enabled=drawing_enabled)
     self._ik_angles = None   # (q0, q1, q2, q3) stored for controller
     self._ctrl_step = 0      # internal step counter for time tracking
+    self._int_err = np.zeros(3)   # integral error accumulator
+    self._int_started = False     # flag to reset integral at WP2 arrival
 
   # ── Trajectory generation ─────────────────────────────────────────────────
 
@@ -73,6 +75,8 @@ class RobStudent(RobSimulation):
     self._t_seg = (t_dwell0_end, t_arrive1, t_dwell1_end,
                    t_arrive2, t_dwell2_end, t_arrive3)
     self._ctrl_step = 0  # reset step counter for new simulation
+    self._int_err = np.zeros(3)
+    self._int_started = False
 
     # ── Build timestamp array ───────────────────────────────────────────────
     dt = self._dt
@@ -185,5 +189,16 @@ class RobStudent(RobSimulation):
     ])
 
     tau = Kp * (theta_ref - theta) + Kd * (theta_dot_ref - theta_dot) + G
+
+    # Integral action from WP2 onward: eliminates steady-state offset
+    if self._ik_angles is not None and t >= t2a:
+      if not self._int_started:
+        self._int_err = np.zeros(3)
+        self._int_started = True
+      self._int_err += (theta_ref - theta) * self._dt
+      self._int_err = np.clip(self._int_err, -0.5, 0.5)  # anti-windup
+      Ki = np.array([10.0, 100.0, 50.0])
+      tau = tau + Ki * self._int_err
+
     self._last_tau = tau
     return tau
