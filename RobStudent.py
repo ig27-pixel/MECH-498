@@ -136,10 +136,6 @@ class RobStudent(RobSimulation):
     """PD + gravity feed-forward torque."""
     t = float(timestep)
 
-    # Compute desired state directly from stored segment data
-    Kp = np.array([150.0, 300.0, 150.0])
-    Kd = np.array([ 40.0, 100.0,  50.0])
-
     if self._ik_angles is not None:
       q0, q1, q2, q3 = self._ik_angles
       t0e, t1, t1e, t2a, t2e, t3a = self._t_seg  # boundary times
@@ -165,15 +161,18 @@ class RobStudent(RobSimulation):
       else:
         theta_ref, theta_dot_ref = q3.copy(), np.zeros(3)
 
-      in_dwell = (t <= t0e or
-                  t1 <= t <= t1e or
-                  t2a <= t <= t2e or
-                  t >= t3a)
-      if in_dwell:
+      # Boost gains only after WP2 arrival to improve convergence without
+      # disturbing the WP0/WP1 phases (high gains near singularity break traj 1)
+      if t >= t2a:
         Kp = np.array([300.0, 600.0, 300.0])
-        Kd = np.array([200.0, 400.0, 200.0])
+        Kd = np.array([100.0, 300.0, 150.0])
+      else:
+        Kp = np.array([150.0, 300.0, 150.0])
+        Kd = np.array([ 40.0, 100.0,  50.0])
     else:
       theta_ref, theta_dot_ref = self._get_desired_state(t)
+      Kp = np.array([150.0, 300.0, 150.0])
+      Kd = np.array([ 40.0, 100.0,  50.0])
 
     c2  = np.cos(theta[1])
     c23 = np.cos(theta[1] + theta[2])
