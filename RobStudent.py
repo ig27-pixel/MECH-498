@@ -161,11 +161,12 @@ class RobStudent(RobSimulation):
       else:
         theta_ref, theta_dot_ref = q3.copy(), np.zeros(3)
 
-      # Boost gains only after WP2 arrival to improve convergence without
-      # disturbing the WP0/WP1 phases (high gains near singularity break traj 1)
-      if t >= t2a:
+      # Switch to higher gains after WP1 is confirmed (t1e=12s): robot is at
+      # q1 with ~zero velocity, so the switch has no torque discontinuity.
+      # Higher gains improve tracking during WP1→WP2 travel and WP2 dwell.
+      if t >= t1e:
         Kp = np.array([300.0, 600.0, 300.0])
-        Kd = np.array([100.0, 300.0, 150.0])
+        Kd = np.array([100.0, 400.0, 200.0])
       else:
         Kp = np.array([150.0, 300.0, 150.0])
         Kd = np.array([ 40.0, 100.0,  50.0])
