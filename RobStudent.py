@@ -73,15 +73,17 @@ class RobStudent(RobSimulation):
           np.array([theta1_direct,         _q2(q3_a), q3_a]),
           np.array([theta1_direct,         _q2(q3_b), q3_b]),
       ]
-      best_angles, best_err = prev.copy(), float('inf')
+      best_angles, best_err, best_jdist = prev.copy(), float('inf'), float('inf')
       for seed in seeds:
         s, a = self.calculate_ik(wp_arr, seed)
         if not s:
           continue
         self.calculate_fk(a)
         err = np.linalg.norm(self.ee_pos - wp_arr)
-        if err < best_err:
-          best_err, best_angles = err, a.copy()
+        jdist = np.linalg.norm(a - prev)
+        # Primary: FK accuracy; tiebreak within 1 mm by joint-space continuity
+        if err < best_err - 1.0 or (err <= best_err + 1.0 and jdist < best_jdist):
+          best_err, best_jdist, best_angles = err, jdist, a.copy()
       ik_angles.append(best_angles)
       prev = best_angles.copy()
 
@@ -207,8 +209,8 @@ class RobStudent(RobSimulation):
 
     tau = Kp * (theta_ref - theta) + Kd * (theta_dot_ref - theta_dot) + G
 
-    # Integral action from WP2 onward: eliminates steady-state offset
-    if self._ik_angles is not None and t >= t2a:
+    # Integral action during WP2 dwell only — avoids stale integral fighting WP3
+    if self._ik_angles is not None and t2a <= t <= t2e:
       if not self._int_started:
         self._int_err = np.zeros(3)
         self._int_started = True
