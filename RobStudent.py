@@ -39,9 +39,8 @@ class RobStudent(RobSimulation):
     t_arrive1      =  9.0   # arrive at ball_start
     t_dwell1_end   = 12.0   # end of dwell at ball_start
     t_arrive2      = 20.0   # arrive at ball_end
-    t_dwell2_end   = 27.0   # end of dwell at ball_end (7 s dwell — more convergence time)
-    t_arrive3      = 29.5   # arrive at home (end)
-    # 29 → 30 : final dwell at home
+    t_dwell2_end   = 26.0   # end of dwell at ball_end
+    t_arrive3      = 29.0   # arrive at home (end)
 
     # ── IK for each waypoint ────────────────────────────────────────────────
     prev = np.array([0.0, np.radians(-20.0), np.radians(20.0)])
@@ -138,6 +137,9 @@ class RobStudent(RobSimulation):
     t = float(timestep)
 
     # Compute desired state directly from stored segment data
+    Kp = np.array([150.0, 300.0, 150.0])
+    Kd = np.array([ 40.0, 100.0,  50.0])
+
     if self._ik_angles is not None:
       q0, q1, q2, q3 = self._ik_angles
       t0e, t1, t1e, t2a, t2e, t3a = self._t_seg  # boundary times
@@ -162,23 +164,25 @@ class RobStudent(RobSimulation):
         theta_ref, theta_dot_ref = _seg(q2, q3, t2e, t3a, t)
       else:
         theta_ref, theta_dot_ref = q3.copy(), np.zeros(3)
+
+      in_dwell = (t <= t0e or
+                  t1 <= t <= t1e or
+                  t2a <= t <= t2e or
+                  t >= t3a)
+      if in_dwell:
+        Kp = np.array([300.0, 600.0, 300.0])
+        Kd = np.array([200.0, 400.0, 200.0])
     else:
       theta_ref, theta_dot_ref = self._get_desired_state(t)
 
-    t2  = theta[1]
-    t3  = theta[2]
-    c2  = np.cos(t2)
-    c23 = np.cos(t2 + t3)
-
+    c2  = np.cos(theta[1])
+    c23 = np.cos(theta[1] + theta[2])
     G = np.array([
         0.0,
         self.g * 1e-3 * (self.m2 * (self.l2 / 2.0) * c2
                          + self.m3 * (self.l2 * c2 + self.lc3 * c23)),
         self.g * 1e-3 * self.m3 * self.lc3 * c23,
     ])
-
-    Kp = np.array([300.0, 600.0, 300.0])
-    Kd = np.array([100.0, 300.0, 150.0])
 
     tau = Kp * (theta_ref - theta) + Kd * (theta_dot_ref - theta_dot) + G
     self._last_tau = tau
