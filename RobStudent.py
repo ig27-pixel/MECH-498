@@ -51,10 +51,27 @@ class RobStudent(RobSimulation):
       wp_arr = np.asarray(wp, dtype=float)
       # Try multiple seeds and keep the solution whose FK is closest to wp
       theta1_direct = np.arctan2(wp_arr[1], wp_arr[0])
+
+      # Analytical 2R closed-form seeds (elbow-up and elbow-down)
+      r_h   = np.sqrt(wp_arr[0]**2 + wp_arr[1]**2)
+      z_rel = wp_arr[2] - self.l1
+      d2    = r_h**2 + z_rel**2
+      cos_q3 = np.clip((d2 - self.l2**2 - self.l3**2) /
+                       (2.0 * self.l2 * self.l3), -1.0, 1.0)
+      q3_a =  np.arccos(cos_q3)   # elbow-down (external angle)
+      q3_b = -q3_a                 # elbow-up
+
+      def _q2(q3v):
+        k1 = self.l2 + self.l3 * np.cos(q3v)
+        k2 = self.l3 * np.sin(q3v)
+        return np.arctan2(z_rel, r_h) - np.arctan2(k2, k1)
+
       seeds = [
           prev,
-          np.array([theta1_direct,        prev[1],  prev[2]]),
-          np.array([theta1_direct + np.pi, -prev[1], prev[2]]),
+          np.array([theta1_direct,        prev[1],   prev[2]]),
+          np.array([theta1_direct + np.pi, -prev[1],  prev[2]]),
+          np.array([theta1_direct,         _q2(q3_a), q3_a]),
+          np.array([theta1_direct,         _q2(q3_b), q3_b]),
       ]
       best_angles, best_err = prev.copy(), float('inf')
       for seed in seeds:
@@ -196,8 +213,8 @@ class RobStudent(RobSimulation):
         self._int_err = np.zeros(3)
         self._int_started = True
       self._int_err += (theta_ref - theta) * self._dt
-      self._int_err = np.clip(self._int_err, -0.5, 0.5)  # anti-windup
-      Ki = np.array([10.0, 100.0, 50.0])
+      self._int_err = np.clip(self._int_err, -1.0, 1.0)  # anti-windup
+      Ki = np.array([20.0, 200.0, 100.0])
       tau = tau + Ki * self._int_err
 
     self._last_tau = tau
