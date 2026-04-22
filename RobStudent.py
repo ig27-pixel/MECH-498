@@ -154,8 +154,8 @@ class RobStudent(RobSimulation):
         kp = np.array([420.0, 1200.0, 520.0])
         kd = np.array([180.0, 520.0, 220.0])
       else:
-        kp = np.array([260.0, 760.0, 320.0])
-        kd = np.array([240.0, 700.0, 280.0])
+        kp = np.array([420.0, 1200.0, 520.0])
+        kd = np.array([320.0, 900.0, 360.0])
     else:
       t2a = t2e = -1.0
       t3a = -1.0
@@ -185,6 +185,13 @@ class RobStudent(RobSimulation):
       self._int_err += (theta_ref - theta) * self._dt
       self._int_err = np.clip(self._int_err, -0.2, 0.2)
       tau += np.array([8.0, 70.0, 35.0]) * self._int_err
+    elif self._ik_angles is not None and t >= t3a:
+      if self._int_started:
+        self._int_err[:] = 0.0
+      self._int_started = True
+      self._int_err += (theta_ref - theta) * self._dt
+      self._int_err = np.clip(self._int_err, -0.15, 0.15)
+      tau += np.array([20.0, 120.0, 60.0]) * self._int_err
     elif self._int_started:
       self._int_err[:] = 0.0
       self._int_started = False
