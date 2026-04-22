@@ -72,7 +72,7 @@ class RobStudent(RobSimulation):
     t_dwell1_end = 7.0
     t_arrive2 = 11.5
     t_dwell2_end = 13.0
-    t_arrive3 = 20.0
+    t_arrive3 = 24.0
 
     def all_ik_solutions(wp_arr: np.ndarray):
       p_x, p_y, p_z = wp_arr
@@ -129,7 +129,10 @@ class RobStudent(RobSimulation):
 
     q1 = choose_nearest_solution(waypoints[1], q0)
     q2 = choose_nearest_solution(waypoints[2], q1)
-    q3 = choose_nearest_solution(waypoints[3], q2)
+    if np.linalg.norm(np.asarray(waypoints[3], dtype=float) - np.asarray(waypoints[0], dtype=float)) < 1e-6:
+      q3 = q0.copy()
+    else:
+      q3 = choose_nearest_solution(waypoints[3], q2)
 
     self._ik_angles = (q0, q1, q2, q3)
     self._t_seg = (t_dwell0_end, t_arrive1, t_dwell1_end,
@@ -241,11 +244,11 @@ class RobStudent(RobSimulation):
         kp = np.array([280.0, 760.0, 320.0])
         kd = np.array([95.0, 260.0, 110.0])
       elif t < t3a:
-        kp = np.array([260.0, 720.0, 300.0])
-        kd = np.array([110.0, 300.0, 130.0])
+        kp = np.array([300.0, 820.0, 340.0])
+        kd = np.array([120.0, 340.0, 145.0])
       else:
-        kp = np.array([140.0, 380.0, 160.0])
-        kd = np.array([200.0, 560.0, 240.0])
+        kp = np.array([340.0, 920.0, 380.0])
+        kd = np.array([130.0, 360.0, 155.0])
     else:
       t2a = t2e = -1.0
       t3a = -1.0
@@ -278,11 +281,12 @@ class RobStudent(RobSimulation):
         self._int_err[:] = 0.0
       self._int_started = True
       self._int_err += (theta_ref - theta) * self._dt
-      self._int_err = np.clip(self._int_err, -0.04, 0.04)
-      tau += np.array([3.0, 16.0, 7.0]) * self._int_err
+      self._int_err = np.clip(self._int_err, -0.25, 0.25)
+      tau += np.array([18.0, 75.0, 32.0]) * self._int_err
     elif self._int_started:
       self._int_err[:] = 0.0
       self._int_started = False
 
+    tau = np.clip(tau, -100.0, 100.0)
     self._last_tau = tau
     return tau
