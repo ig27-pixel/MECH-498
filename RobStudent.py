@@ -25,7 +25,7 @@ class RobStudent(RobSimulation):
     t_dwell1_end = 12.0
     t_arrive2 = 21.0
     t_dwell2_end = 24.0
-    t_arrive3 = 28.0
+    t_arrive3 = 27.0
 
     prev = np.array([0.0, np.radians(-20.0), np.radians(20.0)])
     ik_angles = []
@@ -151,11 +151,11 @@ class RobStudent(RobSimulation):
         kp = np.array([380.0, 1100.0, 480.0])
         kd = np.array([150.0, 420.0, 180.0])
       elif t < t3a:
-        kp = np.array([320.0, 900.0, 380.0])
-        kd = np.array([160.0, 420.0, 190.0])
+        kp = np.array([420.0, 1200.0, 520.0])
+        kd = np.array([180.0, 520.0, 220.0])
       else:
-        kp = np.array([260.0, 720.0, 320.0])
-        kd = np.array([190.0, 500.0, 220.0])
+        kp = np.array([260.0, 760.0, 320.0])
+        kd = np.array([240.0, 700.0, 280.0])
     else:
       t2a = t2e = -1.0
       t3a = -1.0
@@ -172,7 +172,7 @@ class RobStudent(RobSimulation):
         self.g * 1e-3 * distal_mass * self.lc3 * c23,
     ])
 
-    damping_comp = self.b * theta_dot if t < t2e else np.zeros(3)
+    damping_comp = self.b * theta_dot if t < t3a else np.zeros(3)
     tau = (kp * (theta_ref - theta) +
            kd * (theta_dot_ref - theta_dot) +
            gravity +
