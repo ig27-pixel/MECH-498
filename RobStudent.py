@@ -20,11 +20,11 @@ class RobStudent(RobSimulation):
     total_duration = 30.0
 
     t_dwell0_end = 2.0
-    t_arrive1 = 8.0
-    t_dwell1_end = 11.0
-    t_arrive2 = 18.0
-    t_dwell2_end = 20.0
-    t_arrive3 = 26.0
+    t_arrive1 = 7.0
+    t_dwell1_end = 9.0
+    t_arrive2 = 14.0
+    t_dwell2_end = 15.0
+    t_arrive3 = 22.0
 
     def all_ik_solutions(wp_arr: np.ndarray):
       p_x, p_y, p_z = wp_arr
@@ -168,11 +168,11 @@ class RobStudent(RobSimulation):
         kp = np.array([280.0, 760.0, 320.0])
         kd = np.array([95.0, 260.0, 110.0])
       elif t < t3a:
-        kp = np.array([230.0, 620.0, 260.0])
-        kd = np.array([95.0, 260.0, 115.0])
+        kp = np.array([180.0, 500.0, 220.0])
+        kd = np.array([80.0, 220.0, 95.0])
       else:
-        kp = np.array([90.0, 240.0, 100.0])
-        kd = np.array([180.0, 520.0, 220.0])
+        kp = np.array([55.0, 150.0, 70.0])
+        kd = np.array([220.0, 650.0, 280.0])
     else:
       t2a = t2e = -1.0
       t3a = -1.0
@@ -198,8 +198,8 @@ class RobStudent(RobSimulation):
         self._int_err[:] = 0.0
         self._int_started = True
       self._int_err += (theta_ref - theta) * self._dt
-      self._int_err = np.clip(self._int_err, -0.12, 0.12)
-      tau += np.array([6.0, 40.0, 18.0]) * self._int_err
+      self._int_err = np.clip(self._int_err, -0.08, 0.08)
+      tau += np.array([4.0, 24.0, 10.0]) * self._int_err
     elif self._int_started:
       self._int_err[:] = 0.0
       self._int_started = False
