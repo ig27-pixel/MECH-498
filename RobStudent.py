@@ -45,7 +45,7 @@ class RobStudent(RobSimulation):
     t_arrive3      = 29.0   # arrive at home (end)
 
     # ── IK for each waypoint ────────────────────────────────────────────────
-    prev = np.array([0.0, np.radians(-20.0), np.radians(-20.0)])
+    prev = np.array([0.0, np.radians(-20.0), np.radians(20.0)])
     ik_angles = []
     for wp in waypoints:
       wp_arr = np.asarray(wp, dtype=float)
