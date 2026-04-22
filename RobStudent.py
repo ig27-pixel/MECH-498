@@ -19,13 +19,14 @@ class RobStudent(RobSimulation):
     """Build a 30-second joint-space trajectory from 4 Cartesian waypoints."""
     total_duration = 30.0
 
-    # Slow, generous timing makes the plain PD controller much easier to settle.
-    t_dwell0_end = 3.0
-    t_arrive1 = 9.0
-    t_dwell1_end = 13.0
-    t_arrive2 = 19.0
-    t_dwell2_end = 21.0
-    t_arrive3 = 24.0
+    # Keep enough dwell to settle at WP1 and WP2, but reserve a long return leg
+    # because WP2 -> home is the hardest move for the graded trajectories.
+    t_dwell0_end = 2.0
+    t_arrive1 = 8.0
+    t_dwell1_end = 11.0
+    t_arrive2 = 18.0
+    t_dwell2_end = 20.0
+    t_arrive3 = 26.0
 
     prev = np.array([0.0, np.radians(-20.0), np.radians(20.0)])
     ik_angles = []
@@ -72,6 +73,8 @@ class RobStudent(RobSimulation):
       prev = best_angles.copy()
 
     q0, q1, q2, q3 = ik_angles
+    if np.linalg.norm(waypoints[3] - waypoints[0]) < 1e-6:
+      q3 = q0.copy()
     self._ik_angles = (q0, q1, q2, q3)
     self._t_seg = (t_dwell0_end, t_arrive1, t_dwell1_end,
                    t_arrive2, t_dwell2_end, t_arrive3)
@@ -151,11 +154,11 @@ class RobStudent(RobSimulation):
         kp = np.array([280.0, 760.0, 320.0])
         kd = np.array([95.0, 260.0, 110.0])
       elif t < t3a:
-        kp = np.array([320.0, 860.0, 360.0])
-        kd = np.array([120.0, 320.0, 140.0])
+        kp = np.array([230.0, 620.0, 260.0])
+        kd = np.array([95.0, 260.0, 115.0])
       else:
-        kp = np.array([180.0, 460.0, 200.0])
-        kd = np.array([220.0, 620.0, 260.0])
+        kp = np.array([90.0, 240.0, 100.0])
+        kd = np.array([180.0, 520.0, 220.0])
     else:
       t2a = t2e = -1.0
       t3a = -1.0
@@ -183,13 +186,6 @@ class RobStudent(RobSimulation):
       self._int_err += (theta_ref - theta) * self._dt
       self._int_err = np.clip(self._int_err, -0.12, 0.12)
       tau += np.array([6.0, 40.0, 18.0]) * self._int_err
-    elif self._ik_angles is not None and t >= t3a:
-      if self._int_started:
-        self._int_err[:] = 0.0
-      self._int_started = True
-      self._int_err += (theta_ref - theta) * self._dt
-      self._int_err = np.clip(self._int_err, -0.08, 0.08)
-      tau += np.array([4.0, 25.0, 10.0]) * self._int_err
     elif self._int_started:
       self._int_err[:] = 0.0
       self._int_started = False
