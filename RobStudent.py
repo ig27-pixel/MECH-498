@@ -24,8 +24,8 @@ class RobStudent(RobSimulation):
     t_arrive1 = 9.0
     t_dwell1_end = 12.0
     t_arrive2 = 21.0
-    t_dwell2_end = 24.0
-    t_arrive3 = 27.0
+    t_dwell2_end = 22.0
+    t_arrive3 = 24.0
 
     prev = np.array([0.0, np.radians(-20.0), np.radians(20.0)])
     ik_angles = []
@@ -151,11 +151,11 @@ class RobStudent(RobSimulation):
         kp = np.array([380.0, 1100.0, 480.0])
         kd = np.array([150.0, 420.0, 180.0])
       elif t < t3a:
-        kp = np.array([420.0, 1200.0, 520.0])
-        kd = np.array([180.0, 520.0, 220.0])
+        kp = np.array([520.0, 1450.0, 620.0])
+        kd = np.array([220.0, 650.0, 260.0])
       else:
-        kp = np.array([420.0, 1200.0, 520.0])
-        kd = np.array([320.0, 900.0, 360.0])
+        kp = np.array([520.0, 1500.0, 650.0])
+        kd = np.array([360.0, 1050.0, 420.0])
     else:
       t2a = t2e = -1.0
       t3a = -1.0
@@ -190,8 +190,8 @@ class RobStudent(RobSimulation):
         self._int_err[:] = 0.0
       self._int_started = True
       self._int_err += (theta_ref - theta) * self._dt
-      self._int_err = np.clip(self._int_err, -0.15, 0.15)
-      tau += np.array([20.0, 120.0, 60.0]) * self._int_err
+      self._int_err = np.clip(self._int_err, -0.1, 0.1)
+      tau += np.array([16.0, 90.0, 45.0]) * self._int_err
     elif self._int_started:
       self._int_err[:] = 0.0
       self._int_started = False
