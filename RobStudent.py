@@ -19,13 +19,13 @@ class RobStudent(RobSimulation):
     """Build a 30-second joint-space trajectory from 4 Cartesian waypoints."""
     total_duration = 30.0
 
-    # Give the loaded lift toward WP2 a bit more time than the original split.
-    t_dwell0_end = 2.0
+    # Slow, generous timing makes the plain PD controller much easier to settle.
+    t_dwell0_end = 3.0
     t_arrive1 = 9.0
-    t_dwell1_end = 12.0
-    t_arrive2 = 21.0
+    t_dwell1_end = 13.0
+    t_arrive2 = 19.0
     t_dwell2_end = 22.0
-    t_arrive3 = 24.0
+    t_arrive3 = 26.0
 
     prev = np.array([0.0, np.radians(-20.0), np.radians(20.0)])
     ik_angles = []
@@ -131,7 +131,7 @@ class RobStudent(RobSimulation):
 
   def get_rob_torque(self, theta: np.ndarray, theta_dot: np.ndarray,
                      timestep: float) -> np.ndarray:
-    """Trajectory tracking with payload-aware gravity compensation."""
+    """PD trajectory tracking with gravity feed-forward."""
     t = float(timestep)
     if float(self.m4) != self._last_m4:
       self.calculate_parameters()
@@ -142,25 +142,24 @@ class RobStudent(RobSimulation):
     if self._ik_angles is not None:
       _, _, t1e, t2a, t2e, t3a = self._t_seg
       if t < t1e:
-        kp = np.array([180.0, 420.0, 180.0])
-        kd = np.array([60.0, 160.0, 70.0])
+        kp = np.array([160.0, 420.0, 170.0])
+        kd = np.array([55.0, 150.0, 65.0])
       elif t < t2a:
-        kp = np.array([300.0, 900.0, 380.0])
-        kd = np.array([120.0, 320.0, 150.0])
+        kp = np.array([240.0, 650.0, 280.0])
+        kd = np.array([80.0, 220.0, 95.0])
       elif t < t2e:
-        kp = np.array([380.0, 1100.0, 480.0])
-        kd = np.array([150.0, 420.0, 180.0])
+        kp = np.array([280.0, 760.0, 320.0])
+        kd = np.array([95.0, 260.0, 110.0])
       elif t < t3a:
-        kp = np.array([520.0, 1450.0, 620.0])
-        kd = np.array([220.0, 650.0, 260.0])
+        kp = np.array([260.0, 700.0, 300.0])
+        kd = np.array([90.0, 240.0, 105.0])
       else:
-        kp = np.array([520.0, 1500.0, 650.0])
-        kd = np.array([360.0, 1050.0, 420.0])
+        kp = np.array([110.0, 300.0, 130.0])
+        kd = np.array([130.0, 360.0, 150.0])
     else:
       t2a = t2e = -1.0
-      t3a = -1.0
-      kp = np.array([180.0, 420.0, 180.0])
-      kd = np.array([60.0, 160.0, 70.0])
+      kp = np.array([160.0, 420.0, 170.0])
+      kd = np.array([55.0, 150.0, 65.0])
 
     c2 = np.cos(theta[1])
     c23 = np.cos(theta[1] + theta[2])
@@ -172,26 +171,17 @@ class RobStudent(RobSimulation):
         self.g * 1e-3 * distal_mass * self.lc3 * c23,
     ])
 
-    damping_comp = self.b * theta_dot if t < t3a else np.zeros(3)
     tau = (kp * (theta_ref - theta) +
            kd * (theta_dot_ref - theta_dot) +
-           gravity +
-           damping_comp)
+           gravity)
 
     if self._ik_angles is not None and t2a <= t <= t2e:
       if not self._int_started:
         self._int_err[:] = 0.0
         self._int_started = True
       self._int_err += (theta_ref - theta) * self._dt
-      self._int_err = np.clip(self._int_err, -0.2, 0.2)
-      tau += np.array([8.0, 70.0, 35.0]) * self._int_err
-    elif self._ik_angles is not None and t >= t3a:
-      if self._int_started:
-        self._int_err[:] = 0.0
-      self._int_started = True
-      self._int_err += (theta_ref - theta) * self._dt
-      self._int_err = np.clip(self._int_err, -0.1, 0.1)
-      tau += np.array([16.0, 90.0, 45.0]) * self._int_err
+      self._int_err = np.clip(self._int_err, -0.12, 0.12)
+      tau += np.array([6.0, 40.0, 18.0]) * self._int_err
     elif self._int_started:
       self._int_err[:] = 0.0
       self._int_started = False
