@@ -17,9 +17,6 @@ import numpy as np
 from RobBase import Trajectory
 from RobSimulation import RobSimulation
 
-from RobBase import Trajectory
-from RobSimulation import RobSimulation
-
 class RobStudent(RobSimulation):
 
   def __init__(self, drawing_enabled=True):
