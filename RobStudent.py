@@ -45,7 +45,7 @@ class RobStudent(RobSimulation):
     t_arrive3      = 29.0   # arrive at home (end)
 
     # ── IK for each waypoint ────────────────────────────────────────────────
-    prev = np.array([0.0, np.radians(-20.0), np.radians(20.0)])
+    prev = np.array([0.0, np.radians(-20.0), np.radians(-20.0)])
     ik_angles = []
     for wp in waypoints:
       wp_arr = np.asarray(wp, dtype=float)
@@ -188,8 +188,8 @@ class RobStudent(RobSimulation):
       # q1 with ~zero velocity, so the switch has no torque discontinuity.
       # Higher gains improve tracking during WP1→WP2 travel and WP2 dwell.
       if t >= t1e:
-        Kp = np.array([300.0, 600.0, 300.0])
-        Kd = np.array([100.0, 400.0, 200.0])
+        Kp = np.array([500.0, 1000.0, 500.0])
+        Kd = np.array([200.0,  600.0, 300.0])
       else:
         Kp = np.array([150.0, 300.0, 150.0])
         Kd = np.array([ 40.0, 100.0,  50.0])
@@ -215,8 +215,8 @@ class RobStudent(RobSimulation):
         self._int_err = np.zeros(3)
         self._int_started = True
       self._int_err += (theta_ref - theta) * self._dt
-      self._int_err = np.clip(self._int_err, -1.0, 1.0)  # anti-windup
-      Ki = np.array([20.0, 200.0, 100.0])
+      self._int_err = np.clip(self._int_err, -0.3, 0.3)  # anti-windup
+      Ki = np.array([5.0, 50.0, 25.0])
       tau = tau + Ki * self._int_err
 
     self._last_tau = tau
