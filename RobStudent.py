@@ -110,32 +110,26 @@ class RobStudent(RobSimulation):
               solutions.append(q)
       return solutions
 
+    home_seed = np.array([0.0, np.radians(-20.0), np.radians(20.0)])
     q0_candidates = all_ik_solutions(np.asarray(waypoints[0], dtype=float))
     if q0_candidates:
-      home_seed = np.array([0.0, np.radians(-20.0), np.radians(20.0)])
       q0 = min(q0_candidates, key=lambda q: np.linalg.norm(q - home_seed))
     else:
-      q0 = np.array([0.0, np.radians(-20.0), np.radians(20.0)])
+      q0 = home_seed.copy()
 
-    q3 = q0.copy() if np.linalg.norm(waypoints[3] - waypoints[0]) < 1e-6 else all_ik_solutions(
-        np.asarray(waypoints[3], dtype=float))[0]
+    def choose_nearest_solution(wp_arr: np.ndarray, prev_q: np.ndarray) -> np.ndarray:
+      candidates = all_ik_solutions(np.asarray(wp_arr, dtype=float))
+      if candidates:
+        return min(candidates, key=lambda q: np.linalg.norm(q - prev_q)).copy()
 
-    q1_candidates = all_ik_solutions(np.asarray(waypoints[1], dtype=float))
-    q2_candidates = all_ik_solutions(np.asarray(waypoints[2], dtype=float))
+      solved, q = self.calculate_ik(np.asarray(wp_arr, dtype=float), prev_q)
+      if not solved:
+        raise ValueError(f"No IK solution found for waypoint {wp_arr}")
+      return q.copy()
 
-    best_cost = float("inf")
-    q1 = q1_candidates[0]
-    q2 = q2_candidates[0]
-    for q1_cand in q1_candidates:
-      for q2_cand in q2_candidates:
-        d01 = np.linalg.norm(q1_cand - q0)
-        d12 = np.linalg.norm(q2_cand - q1_cand)
-        d23 = np.linalg.norm(q3 - q2_cand)
-        cost = d01 + d12 + 4.0 * d23
-        if cost < best_cost:
-          best_cost = cost
-          q1 = q1_cand.copy()
-          q2 = q2_cand.copy()
+    q1 = choose_nearest_solution(waypoints[1], q0)
+    q2 = choose_nearest_solution(waypoints[2], q1)
+    q3 = choose_nearest_solution(waypoints[3], q2)
 
     self._ik_angles = (q0, q1, q2, q3)
     self._t_seg = (t_dwell0_end, t_arrive1, t_dwell1_end,
