@@ -247,8 +247,8 @@ class RobStudent(RobSimulation):
         kp = np.array([260.0, 720.0, 300.0])
         kd = np.array([110.0, 300.0, 130.0])
       else:
-        kp = np.array([170.0, 480.0, 210.0])
-        kd = np.array([260.0, 760.0, 320.0])
+        kp = np.array([500.0, 1400.0, 600.0])
+        kd = np.array([100.0, 300.0, 130.0])
     else:
       t2a = t2e = -1.0
       t3a = -1.0
@@ -285,8 +285,8 @@ class RobStudent(RobSimulation):
         self._int_err += pos_err * self._dt
       else:
         self._int_err *= 0.85
-      self._int_err = np.clip(self._int_err, -0.03, 0.03)
-      tau += np.array([1.5, 8.0, 3.0]) * self._int_err
+      self._int_err = np.clip(self._int_err, -0.1, 0.1)
+      tau += np.array([5.0, 20.0, 8.0]) * self._int_err
     elif self._int_started:
       self._int_err[:] = 0.0
       self._int_started = False
