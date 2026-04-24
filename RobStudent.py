@@ -123,7 +123,7 @@ class RobStudent(RobSimulation):
     t_dwell1_end = 7.0
     t_arrive2 = 11.5
     t_dwell2_end = 13.0
-    t_arrive3 = 21.0
+    t_arrive3 = 24.0
 
     home_seed = np.array([0.0, np.radians(-20.0), np.radians(20.0)])
     q0_candidates = self._all_ik_solutions(np.asarray(waypoints[0], dtype=float))
@@ -252,19 +252,12 @@ class RobStudent(RobSimulation):
         kd = np.array([110.0, 300.0, 130.0])
       else:
         joint_err_norm = np.linalg.norm(q3 - theta)
-        joint_speed_norm = np.linalg.norm(theta_dot)
-        if joint_err_norm > 0.30:
-          kp = np.array([980.0, 2400.0, 1100.0])
-          kd = np.array([150.0, 390.0, 180.0])
-        elif joint_err_norm > 0.08:
-          kp = np.array([760.0, 1850.0, 860.0])
-          kd = np.array([220.0, 580.0, 270.0])
-        elif joint_speed_norm > 0.02:
-          kp = np.array([260.0, 620.0, 290.0])
-          kd = np.array([520.0, 1350.0, 640.0])
+        if joint_err_norm > 0.18:
+          kp = np.array([900.0, 2200.0, 1000.0])
+          kd = np.array([150.0, 380.0, 175.0])
         else:
-          kp = np.array([220.0, 520.0, 240.0])
-          kd = np.array([620.0, 1550.0, 740.0])
+          kp = np.array([260.0, 620.0, 280.0])
+          kd = np.array([700.0, 1800.0, 820.0])
     else:
       t2a = t2e = -1.0
       t3a = -1.0
@@ -298,12 +291,10 @@ class RobStudent(RobSimulation):
 
     if self._ik_angles is not None and t >= t3a:
       joint_err_norm = np.linalg.norm(self._ik_angles[3] - theta)
-      if joint_err_norm < 0.10:
-        tau += -np.array([70.0, 165.0, 80.0]) * theta_dot
-      if joint_err_norm < 0.04:
-        tau = np.clip(tau, -np.array([35.0, 35.0, 35.0]), np.array([35.0, 35.0, 35.0]))
-      else:
-        tau = np.clip(tau, -np.array([90.0, 90.0, 90.0]), np.array([90.0, 90.0, 90.0]))
+      if joint_err_norm < 0.12:
+        tau += -np.array([90.0, 220.0, 100.0]) * theta_dot
+      if joint_err_norm < 0.06:
+        tau = np.clip(tau, -np.array([30.0, 30.0, 30.0]), np.array([30.0, 30.0, 30.0]))
 
     self._last_tau = tau
     return tau
