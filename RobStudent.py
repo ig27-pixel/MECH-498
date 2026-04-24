@@ -123,7 +123,7 @@ class RobStudent(RobSimulation):
     t_dwell1_end = 7.0
     t_arrive2 = 11.5
     t_dwell2_end = 13.0
-    t_arrive3 = 20.0
+    t_arrive3 = 21.0
 
     home_seed = np.array([0.0, np.radians(-20.0), np.radians(20.0)])
     q0_candidates = self._all_ik_solutions(np.asarray(waypoints[0], dtype=float))
@@ -253,18 +253,18 @@ class RobStudent(RobSimulation):
       else:
         joint_err_norm = np.linalg.norm(q3 - theta)
         joint_speed_norm = np.linalg.norm(theta_dot)
-        if joint_err_norm > 0.45:
-          kp = np.array([900.0, 2200.0, 1000.0])
-          kd = np.array([160.0, 420.0, 190.0])
-        elif joint_err_norm > 0.12:
-          kp = np.array([620.0, 1500.0, 700.0])
-          kd = np.array([260.0, 720.0, 320.0])
-        elif joint_speed_norm > 0.03:
-          kp = np.array([220.0, 540.0, 250.0])
-          kd = np.array([420.0, 1100.0, 520.0])
+        if joint_err_norm > 0.30:
+          kp = np.array([980.0, 2400.0, 1100.0])
+          kd = np.array([150.0, 390.0, 180.0])
+        elif joint_err_norm > 0.08:
+          kp = np.array([760.0, 1850.0, 860.0])
+          kd = np.array([220.0, 580.0, 270.0])
+        elif joint_speed_norm > 0.02:
+          kp = np.array([260.0, 620.0, 290.0])
+          kd = np.array([520.0, 1350.0, 640.0])
         else:
-          kp = np.array([180.0, 420.0, 200.0])
-          kd = np.array([520.0, 1350.0, 620.0])
+          kp = np.array([220.0, 520.0, 240.0])
+          kd = np.array([620.0, 1550.0, 740.0])
     else:
       t2a = t2e = -1.0
       t3a = -1.0
@@ -298,12 +298,12 @@ class RobStudent(RobSimulation):
 
     if self._ik_angles is not None and t >= t3a:
       joint_err_norm = np.linalg.norm(self._ik_angles[3] - theta)
-      if joint_err_norm < 0.25:
-        tau += -np.array([55.0, 130.0, 65.0]) * theta_dot
       if joint_err_norm < 0.10:
-        tau = np.clip(tau, -np.array([45.0, 45.0, 45.0]), np.array([45.0, 45.0, 45.0]))
+        tau += -np.array([70.0, 165.0, 80.0]) * theta_dot
+      if joint_err_norm < 0.04:
+        tau = np.clip(tau, -np.array([35.0, 35.0, 35.0]), np.array([35.0, 35.0, 35.0]))
       else:
-        tau = np.clip(tau, -np.array([85.0, 85.0, 85.0]), np.array([85.0, 85.0, 85.0]))
+        tau = np.clip(tau, -np.array([90.0, 90.0, 90.0]), np.array([90.0, 90.0, 90.0]))
 
     self._last_tau = tau
     return tau
