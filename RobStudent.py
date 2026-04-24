@@ -390,21 +390,20 @@ class RobStudent(RobSimulation):
       self._int_err[:] = 0.0
       self._int_started = False
 
-    if self._ik_angles is not None and t >= t3a:
-      joint_err_norm = np.linalg.norm(self._ik_angles[3] - theta)
-      if joint_err_norm < 0.12:
-        tau += -np.array([90.0, 220.0, 100.0]) * theta_dot
-      if joint_err_norm < 0.06:
-        tau += -np.array([120.0, 260.0, 130.0]) * theta_dot
-      if joint_err_norm < 0.05:
-        tau = np.clip(tau, -np.array([35.0, 35.0, 35.0]), np.array([35.0, 35.0, 35.0]))
-      if self._home_waypoint is not None and joint_err_norm < 0.15:
-        self.calculate_fk(theta)
-        ee_err = self._home_waypoint - self.ee_pos
-        if np.linalg.norm(ee_err) < 120.0:
-          jacobian = self.get_jacobian()
-          ee_vel = jacobian @ theta_dot
-          tau += -(jacobian.T @ (220.0 * ee_vel))
+    if self._ik_angles is not None and t >= t3a and self._home_waypoint is not None:
+      q3 = self._ik_angles[3]
+      self.calculate_fk(theta)
+      ee_err_norm = np.linalg.norm(self._home_waypoint - self.ee_pos)
+
+      if ee_err_norm < 80.0:
+        tau = (gravity +
+               np.array([180.0, 420.0, 200.0]) * (q3 - theta) -
+               np.array([700.0, 1800.0, 820.0]) * theta_dot)
+      if ee_err_norm < 40.0:
+        tau = (gravity +
+               np.array([120.0, 300.0, 150.0]) * (q3 - theta) -
+               np.array([1200.0, 2800.0, 1400.0]) * theta_dot)
+        tau = np.clip(tau, -np.array([25.0, 25.0, 25.0]), np.array([25.0, 25.0, 25.0]))
 
     self._last_tau = tau
     return tau
