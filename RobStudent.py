@@ -23,6 +23,7 @@ class RobStudent(RobSimulation):
     super().__init__(drawing_enabled=drawing_enabled)
     self._ik_angles = None
     self._home_waypoint = None
+    self._final_hold_started = False
     self._int_err = np.zeros(3)
     self._int_started = False
     self._last_m4 = float(self.m4)
@@ -68,6 +69,7 @@ class RobStudent(RobSimulation):
     """
     total_duration = 30.0
 
+    # Reserve time windows for travel and waypoint dwells.
     t_dwell0_end = 1.5
     t_arrive1 = 5.5
     t_dwell1_end = 7.0
@@ -75,6 +77,7 @@ class RobStudent(RobSimulation):
     t_dwell2_end = 13.0
     t_arrive3 = 25.0
 
+    # Prefer the nominal home posture when multiple IK solutions exist.
     home_seed = np.array([0.0, np.radians(-20.0), np.radians(20.0)])
     home_waypoint = np.asarray(waypoints[0], dtype=float)
     p_x, p_y, p_z = home_waypoint
@@ -100,6 +103,7 @@ class RobStudent(RobSimulation):
     ])
     theta_3 = np.array([theta_3[0], theta_3[1], theta_3[0], theta_3[1]])
 
+    # Collect valid home IK solutions and keep only unique ones.
     q0_candidates = []
     for idx in range(4):
       q = np.array([theta_1[idx], theta_2[idx], theta_3[idx]])
@@ -117,6 +121,7 @@ class RobStudent(RobSimulation):
       q0 = home_seed.copy()
     self._home_waypoint = home_waypoint.copy()
 
+    # Solve the first task waypoint near the previous joint state.
     waypoint_1 = np.asarray(waypoints[1], dtype=float)
     p_x, p_y, p_z = waypoint_1
     theta_1 = np.array([np.arctan2(p_y, p_x), np.arctan2(-p_y, -p_x)])
@@ -155,6 +160,7 @@ class RobStudent(RobSimulation):
         raise ValueError(f"No IK solution found for waypoint {waypoint_1}")
       q1 = q1.copy()
 
+    # Solve the second task waypoint near the first waypoint solution.
     waypoint_2 = np.asarray(waypoints[2], dtype=float)
     p_x, p_y, p_z = waypoint_2
     theta_1 = np.array([np.arctan2(p_y, p_x), np.arctan2(-p_y, -p_x)])
@@ -193,6 +199,7 @@ class RobStudent(RobSimulation):
         raise ValueError(f"No IK solution found for waypoint {waypoint_2}")
       q2 = q2.copy()
 
+    # Reuse the original home solution when the last waypoint matches home.
     if np.linalg.norm(np.asarray(waypoints[3], dtype=float) - np.asarray(waypoints[0], dtype=float)) < 1e-6:
       q3 = q0.copy()
     else:
@@ -236,13 +243,16 @@ class RobStudent(RobSimulation):
     self._ik_angles = (q0, q1, q2, q3)
     self._t_seg = (t_dwell0_end, t_arrive1, t_dwell1_end,
                    t_arrive2, t_dwell2_end, t_arrive3)
+    self._final_hold_started = False
     self._int_err[:] = 0.0
     self._int_started = False
 
+    # Sample the full 30-second trajectory at the simulator timestep.
     dt = self._dt
     n = int(round(total_duration / dt)) + 1
     timestamps = np.linspace(0.0, total_duration, n)
 
+    # Build piecewise-smooth joint references through the four waypoints.
     joint_poses = np.zeros((3, n))
     for i, t in enumerate(timestamps):
       if t < t_dwell0_end:
@@ -270,10 +280,12 @@ class RobStudent(RobSimulation):
         q = q3.copy()
       joint_poses[:, i] = q
 
+    # Estimate reference velocities from the joint-position samples.
     joint_vels = np.zeros_like(joint_poses)
     for i in range(1, n - 1):
       joint_vels[:, i] = (joint_poses[:, i + 1] - joint_poses[:, i - 1]) / (2.0 * dt)
 
+    # Force zero desired velocity during each dwell segment.
     for i, t in enumerate(timestamps):
       in_dwell = (t < t_dwell0_end or
                   t_arrive1 <= t < t_dwell1_end or
@@ -282,6 +294,7 @@ class RobStudent(RobSimulation):
       if in_dwell:
         joint_vels[:, i] = 0.0
 
+    # Package the sampled references into the provided Trajectory class.
     traj = Trajectory()
     traj.set_timestamps(timestamps)
     traj.set_joint_1_poses(joint_poses[0])
@@ -326,16 +339,19 @@ class RobStudent(RobSimulation):
     Tip:
         - don't forget about gravity! 
     """
+    # Refresh payload-dependent parameters if the carried mass changes.
     t = float(timestep)
     if float(self.m4) != self._last_m4:
       self.calculate_parameters()
       self._last_m4 = float(self.m4)
 
+    # Read the desired joint state from the stored reference trajectory.
     theta_ref, theta_dot_ref = self._get_desired_state(t)
 
     pos_err = theta_ref - theta
     vel_err = theta_dot_ref - theta_dot
 
+    # Use phase-dependent gains to balance travel speed and settling.
     if self._ik_angles is not None:
       _, _, t1e, t2a, t2e, t3a = self._t_seg
       q3 = self._ik_angles[3]
@@ -363,6 +379,7 @@ class RobStudent(RobSimulation):
     c2 = np.cos(theta[1])
     c23 = np.cos(theta[1] + theta[2])
     distal_mass = self.m3 + self.m4
+    # Add gravity feed-forward so the PD terms do not fight static load alone.
     gravity = np.array([
         0.0,
         self.g * 1e-3 * (self.m2 * (self.l2 / 2.0) * c2 +
@@ -370,10 +387,12 @@ class RobStudent(RobSimulation):
         self.g * 1e-3 * distal_mass * self.lc3 * c23,
     ])
 
+    # Start with joint-space PD plus gravity compensation.
     tau = (kp * pos_err +
            kd * vel_err +
            gravity)
 
+    # Keep a small integral term only during the payload transfer segment.
     if self._ik_angles is not None and t2a <= t <= t2e:
       if not self._int_started:
         self._int_err[:] = 0.0
@@ -385,21 +404,27 @@ class RobStudent(RobSimulation):
       self._int_err[:] = 0.0
       self._int_started = False
 
+    # Apply extra damping only after the arm is back near the final home waypoint.
     if self._ik_angles is not None and t >= t3a and self._home_waypoint is not None:
       q3 = self._ik_angles[3]
       self.calculate_fk(theta)
       ee_err_norm = np.linalg.norm(self._home_waypoint - self.ee_pos)
 
+      # Latch into a dedicated final hold once home has been reached.
       if ee_err_norm < 50.0:
+        self._final_hold_started = True
+
+      if self._final_hold_started:
         tau = (gravity +
-               np.array([80.0, 180.0, 90.0]) * (q3 - theta) -
-               np.array([1800.0, 4200.0, 2200.0]) * theta_dot)
-        tau = np.clip(tau, -np.array([45.0, 45.0, 45.0]), np.array([45.0, 45.0, 45.0]))
-      if ee_err_norm < 20.0:
-        tau = (gravity +
-               np.array([40.0, 100.0, 50.0]) * (q3 - theta) -
-               np.array([2600.0, 6000.0, 3200.0]) * theta_dot)
-        tau = np.clip(tau, -np.array([30.0, 30.0, 30.0]), np.array([30.0, 30.0, 30.0]))
+               np.array([110.0, 260.0, 130.0]) * (q3 - theta) -
+               np.array([900.0, 2400.0, 1200.0]) * theta_dot)
+        tau = np.clip(tau, -np.array([40.0, 40.0, 40.0]), np.array([40.0, 40.0, 40.0]))
+
+        if ee_err_norm < 20.0:
+          tau = (gravity +
+                 np.array([60.0, 140.0, 70.0]) * (q3 - theta) -
+                 np.array([1400.0, 3600.0, 1800.0]) * theta_dot)
+          tau = np.clip(tau, -np.array([25.0, 25.0, 25.0]), np.array([25.0, 25.0, 25.0]))
 
     self._last_tau = tau
     return tau
