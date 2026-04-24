@@ -73,7 +73,7 @@ class RobStudent(RobSimulation):
     t_dwell1_end = 7.0
     t_arrive2 = 11.5
     t_dwell2_end = 13.0
-    t_arrive3 = 20.0
+    t_arrive3 = 25.0
 
     home_seed = np.array([0.0, np.radians(-20.0), np.radians(20.0)])
     home_waypoint = np.asarray(waypoints[0], dtype=float)
@@ -352,8 +352,8 @@ class RobStudent(RobSimulation):
         kp = np.array([260.0, 720.0, 300.0])
         kd = np.array([110.0, 300.0, 130.0])
       else:
-        kp = np.array([260.0, 620.0, 280.0])
-        kd = np.array([520.0, 1350.0, 620.0])
+        kp = np.array([780.0, 1900.0, 880.0])
+        kd = np.array([140.0, 380.0, 170.0])
     else:
       t2a = t2e = -1.0
       t3a = -1.0
@@ -391,12 +391,10 @@ class RobStudent(RobSimulation):
       jacobian = self.get_jacobian()
       ee_vel = jacobian @ theta_dot
 
-      if ee_err_norm < 80.0:
-        tau += -np.array([80.0, 200.0, 95.0]) * theta_dot
       if ee_err_norm < 50.0:
-        tau += -(jacobian.T @ (600.0 * ee_vel))
+        tau += -(jacobian.T @ (220.0 * ee_vel))
       if ee_err_norm < 20.0:
-        tau += -(jacobian.T @ (1400.0 * ee_vel))
+        tau += -(jacobian.T @ (700.0 * ee_vel))
         tau = np.clip(tau, -np.array([45.0, 45.0, 45.0]), np.array([45.0, 45.0, 45.0]))
 
     self._last_tau = tau
