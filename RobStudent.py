@@ -22,7 +22,6 @@ class RobStudent(RobSimulation):
   def __init__(self, drawing_enabled=True):
     super().__init__(drawing_enabled=drawing_enabled)
     self._ik_angles = None
-    self._final_waypoint = None
     self._int_err = np.zeros(3)
     self._int_started = False
     self._last_m4 = float(self.m4)
@@ -134,9 +133,7 @@ class RobStudent(RobSimulation):
       q3 = q0.copy()
     else:
       q3 = choose_nearest_solution(waypoints[3], q2)
-
     self._ik_angles = (q0, q1, q2, q3)
-    self._final_waypoint = np.asarray(waypoints[3], dtype=float).copy()
     self._t_seg = (t_dwell0_end, t_arrive1, t_dwell1_end,
                    t_arrive2, t_dwell2_end, t_arrive3)
     self._int_err[:] = 0.0
@@ -239,6 +236,7 @@ class RobStudent(RobSimulation):
 
     if self._ik_angles is not None:
       _, _, t1e, t2a, t2e, t3a = self._t_seg
+      q3 = self._ik_angles[3]
       if t < t1e:
         kp = np.array([160.0, 420.0, 170.0])
         kd = np.array([55.0, 150.0, 65.0])
@@ -252,21 +250,20 @@ class RobStudent(RobSimulation):
         kp = np.array([260.0, 720.0, 300.0])
         kd = np.array([110.0, 300.0, 130.0])
       else:
-        pos_err_norm = np.linalg.norm(pos_err)
-        vel_err_norm = np.linalg.norm(vel_err)
-        if pos_err_norm > 0.35:
-          # Far from home: prioritize pulling the arm back to the final waypoint.
-          kp = np.array([900.0, 2300.0, 1050.0])
-          kd = np.array([130.0, 340.0, 150.0])
-        elif pos_err_norm > 0.08 or vel_err_norm > 0.2:
-          # Near home but still moving: use strong damping to bleed off speed
-          # without giving up too much position authority.
-          kp = np.array([620.0, 1550.0, 720.0])
-          kd = np.array([210.0, 560.0, 260.0])
+        joint_err_norm = np.linalg.norm(q3 - theta)
+        joint_speed_norm = np.linalg.norm(theta_dot)
+        if joint_err_norm > 0.45:
+          kp = np.array([850.0, 2100.0, 950.0])
+          kd = np.array([120.0, 320.0, 140.0])
+        elif joint_err_norm > 0.12:
+          kp = np.array([560.0, 1400.0, 640.0])
+          kd = np.array([220.0, 620.0, 280.0])
+        elif joint_speed_norm > 0.08:
+          kp = np.array([300.0, 760.0, 340.0])
+          kd = np.array([320.0, 900.0, 420.0])
         else:
-          # Final settle window for the autograder's tight speed threshold.
-          kp = np.array([360.0, 900.0, 420.0])
-          kd = np.array([260.0, 720.0, 320.0])
+          kp = np.array([220.0, 560.0, 260.0])
+          kd = np.array([360.0, 1000.0, 480.0])
     else:
       t2a = t2e = -1.0
       t3a = -1.0
@@ -298,24 +295,11 @@ class RobStudent(RobSimulation):
       self._int_err[:] = 0.0
       self._int_started = False
 
-    if self._ik_angles is not None and self._final_waypoint is not None and t >= t3a:
-      self.calculate_fk(theta)
-      ee_err = self._final_waypoint - self.ee_pos
-      ee_vel = self.get_jacobian() @ theta_dot
-      ee_err_norm = np.linalg.norm(ee_err)
-      ee_vel_norm = np.linalg.norm(ee_vel)
-
-      if ee_err_norm < 250.0:
-        if ee_err_norm < 80.0:
-          cart_kp = 0.10
-          cart_kd = 140.0
-        else:
-          cart_kp = 0.18
-          cart_kd = 90.0
-        tau += self.get_jacobian().T @ (cart_kp * ee_err - cart_kd * ee_vel)
-
-      if ee_err_norm < 120.0 and ee_vel_norm < 0.5:
-        tau += -18.0 * theta_dot
+    if self._ik_angles is not None and t >= t3a:
+      joint_err_norm = np.linalg.norm(self._ik_angles[3] - theta)
+      if joint_err_norm < 0.18:
+        tau += -np.array([35.0, 80.0, 40.0]) * theta_dot
+      tau = np.clip(tau, -np.array([90.0, 90.0, 90.0]), np.array([90.0, 90.0, 90.0]))
 
     self._last_tau = tau
     return tau
