@@ -17,8 +17,6 @@ import numpy as np
 from RobBase import Trajectory
 from RobSimulation import RobSimulation
 
-TAU_MAX = 100.0  # N*m per joint
-
 class RobStudent(RobSimulation):
 
   def __init__(self, drawing_enabled=True):
@@ -69,13 +67,12 @@ class RobStudent(RobSimulation):
     """
     total_duration = 30.0
 
-    # Leave a long final hold so the arm can fully settle back at home.
-    t_dwell0_end = 1.0
-    t_arrive1 = 4.5
-    t_dwell1_end = 5.5
-    t_arrive2 = 9.5
-    t_dwell2_end = 10.5
-    t_arrive3 = 20.0
+    t_dwell0_end = 1.5
+    t_arrive1 = 5.5
+    t_dwell1_end = 7.0
+    t_arrive2 = 11.5
+    t_dwell2_end = 13.0
+    t_arrive3 = 23.0
 
     def all_ik_solutions(wp_arr: np.ndarray):
       p_x, p_y, p_z = wp_arr
@@ -253,8 +250,8 @@ class RobStudent(RobSimulation):
         kp = np.array([260.0, 720.0, 300.0])
         kd = np.array([110.0, 300.0, 130.0])
       else:
-        kp = np.array([520.0, 1350.0, 620.0])
-        kd = np.array([180.0, 460.0, 220.0])
+        kp = np.array([700.0, 1750.0, 800.0])
+        kd = np.array([180.0, 500.0, 220.0])
     else:
       t2a = t2e = -1.0
       t3a = -1.0
@@ -286,6 +283,5 @@ class RobStudent(RobSimulation):
       self._int_err[:] = 0.0
       self._int_started = False
 
-    tau = np.clip(tau, -TAU_MAX, TAU_MAX)
     self._last_tau = tau
     return tau
