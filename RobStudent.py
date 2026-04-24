@@ -72,7 +72,7 @@ class RobStudent(RobSimulation):
     t_dwell1_end = 7.0
     t_arrive2 = 11.5
     t_dwell2_end = 13.0
-    t_arrive3 = 18.0
+    t_arrive3 = 25.0
 
     def all_ik_solutions(wp_arr: np.ndarray):
       p_x, p_y, p_z = wp_arr
@@ -247,8 +247,8 @@ class RobStudent(RobSimulation):
         kp = np.array([260.0, 720.0, 300.0])
         kd = np.array([110.0, 300.0, 130.0])
       else:
-        kp = np.array([600.0, 1600.0, 700.0])
-        kd = np.array([300.0, 900.0, 400.0])
+        kp = np.array([300.0, 800.0, 350.0])
+        kd = np.array([120.0, 330.0, 140.0])
     else:
       t2a = t2e = -1.0
       t3a = -1.0
