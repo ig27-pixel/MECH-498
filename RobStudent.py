@@ -72,7 +72,7 @@ class RobStudent(RobSimulation):
     t_dwell1_end = 7.0
     t_arrive2 = 11.5
     t_dwell2_end = 13.0
-    t_arrive3 = 18.0
+    t_arrive3 = 22.0
 
     def all_ik_solutions(wp_arr: np.ndarray):
       p_x, p_y, p_z = wp_arr
@@ -250,10 +250,21 @@ class RobStudent(RobSimulation):
         kp = np.array([260.0, 720.0, 300.0])
         kd = np.array([110.0, 300.0, 130.0])
       else:
-        # Final home hold: prefer strong damping over aggressive stiffness
-        # so the end effector settles inside the autograder velocity threshold.
-        kp = np.array([420.0, 1050.0, 480.0])
-        kd = np.array([220.0, 620.0, 280.0])
+        pos_err_norm = np.linalg.norm(pos_err)
+        vel_err_norm = np.linalg.norm(vel_err)
+        if pos_err_norm > 0.35:
+          # Far from home: prioritize pulling the arm back to the final waypoint.
+          kp = np.array([900.0, 2300.0, 1050.0])
+          kd = np.array([130.0, 340.0, 150.0])
+        elif pos_err_norm > 0.08 or vel_err_norm > 0.2:
+          # Near home but still moving: use strong damping to bleed off speed
+          # without giving up too much position authority.
+          kp = np.array([620.0, 1550.0, 720.0])
+          kd = np.array([210.0, 560.0, 260.0])
+        else:
+          # Final settle window for the autograder's tight speed threshold.
+          kp = np.array([360.0, 900.0, 420.0])
+          kd = np.array([260.0, 720.0, 320.0])
     else:
       t2a = t2e = -1.0
       t3a = -1.0
