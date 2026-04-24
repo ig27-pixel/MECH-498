@@ -72,7 +72,7 @@ class RobStudent(RobSimulation):
     t_dwell1_end = 7.0
     t_arrive2 = 11.5
     t_dwell2_end = 13.0
-    t_arrive3 = 23.0
+    t_arrive3 = 25.0
 
     home_seed = np.array([0.0, np.radians(-20.0), np.radians(20.0)])
     home_waypoint = np.asarray(waypoints[0], dtype=float)
@@ -350,8 +350,8 @@ class RobStudent(RobSimulation):
         kp = np.array([260.0, 720.0, 300.0])
         kd = np.array([110.0, 300.0, 130.0])
       else:
-        kp = np.array([700.0, 1750.0, 800.0])
-        kd = np.array([180.0, 500.0, 220.0])
+        kp = np.array([780.0, 1900.0, 880.0])
+        kd = np.array([140.0, 380.0, 170.0])
     else:
       t2a = t2e = -1.0
       t3a = -1.0
@@ -385,8 +385,10 @@ class RobStudent(RobSimulation):
 
     if self._ik_angles is not None and t >= t3a:
       joint_err_norm = np.linalg.norm(self._ik_angles[3] - theta)
-      if joint_err_norm < 0.08:
-        tau += -np.array([20.0, 50.0, 25.0]) * theta_dot
+      if joint_err_norm < 0.12:
+        tau += -np.array([60.0, 150.0, 70.0]) * theta_dot
+      if joint_err_norm < 0.05:
+        tau = np.clip(tau, -np.array([45.0, 45.0, 45.0]), np.array([45.0, 45.0, 45.0]))
 
     self._last_tau = tau
     return tau
