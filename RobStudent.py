@@ -73,7 +73,7 @@ class RobStudent(RobSimulation):
     t_dwell1_end = 7.0
     t_arrive2 = 11.5
     t_dwell2_end = 13.0
-    t_arrive3 = 25.0
+    t_arrive3 = 20.0
 
     home_seed = np.array([0.0, np.radians(-20.0), np.radians(20.0)])
     home_waypoint = np.asarray(waypoints[0], dtype=float)
@@ -353,12 +353,15 @@ class RobStudent(RobSimulation):
         kd = np.array([110.0, 300.0, 130.0])
       else:
         joint_err_norm = np.linalg.norm(q3 - theta)
-        if joint_err_norm > 0.12:
-          kp = np.array([780.0, 1900.0, 880.0])
-          kd = np.array([140.0, 380.0, 170.0])
+        if joint_err_norm > 0.25:
+          kp = np.array([900.0, 2200.0, 1000.0])
+          kd = np.array([160.0, 420.0, 190.0])
+        elif joint_err_norm > 0.08:
+          kp = np.array([650.0, 1600.0, 720.0])
+          kd = np.array([220.0, 600.0, 270.0])
         else:
-          kp = np.array([220.0, 520.0, 240.0])
-          kd = np.array([520.0, 1350.0, 620.0])
+          kp = np.array([180.0, 420.0, 200.0])
+          kd = np.array([900.0, 2200.0, 1000.0])
     else:
       t2a = t2e = -1.0
       t3a = -1.0
@@ -397,13 +400,13 @@ class RobStudent(RobSimulation):
 
       if ee_err_norm < 80.0:
         tau = (gravity +
-               np.array([180.0, 420.0, 200.0]) * (q3 - theta) -
-               np.array([700.0, 1800.0, 820.0]) * theta_dot)
+               np.array([220.0, 520.0, 240.0]) * (q3 - theta) -
+               np.array([900.0, 2200.0, 1000.0]) * theta_dot)
       if ee_err_norm < 40.0:
         tau = (gravity +
-               np.array([120.0, 300.0, 150.0]) * (q3 - theta) -
-               np.array([1200.0, 2800.0, 1400.0]) * theta_dot)
-        tau = np.clip(tau, -np.array([25.0, 25.0, 25.0]), np.array([25.0, 25.0, 25.0]))
+               np.array([120.0, 280.0, 140.0]) * (q3 - theta) -
+               np.array([1400.0, 3400.0, 1600.0]) * theta_dot)
+        tau = np.clip(tau, -np.array([60.0, 60.0, 60.0]), np.array([60.0, 60.0, 60.0]))
 
     self._last_tau = tau
     return tau
