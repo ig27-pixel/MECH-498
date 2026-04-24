@@ -72,7 +72,7 @@ class RobStudent(RobSimulation):
     t_dwell1_end = 7.0
     t_arrive2 = 11.5
     t_dwell2_end = 13.0
-    t_arrive3 = 23.0
+    t_arrive3 = 25.0
 
     def all_ik_solutions(wp_arr: np.ndarray):
       p_x, p_y, p_z = wp_arr
@@ -250,8 +250,8 @@ class RobStudent(RobSimulation):
         kp = np.array([260.0, 720.0, 300.0])
         kd = np.array([110.0, 300.0, 130.0])
       else:
-        kp = np.array([700.0, 1750.0, 800.0])
-        kd = np.array([180.0, 500.0, 220.0])
+        kp = np.array([800.0, 2000.0, 900.0])
+        kd = np.array([110.0, 300.0, 130.0])
     else:
       t2a = t2e = -1.0
       t3a = -1.0
@@ -279,6 +279,13 @@ class RobStudent(RobSimulation):
       self._int_err += pos_err * self._dt
       self._int_err = np.clip(self._int_err, -0.05, 0.05)
       tau += np.array([2.0, 12.0, 5.0]) * self._int_err
+    elif self._ik_angles is not None and t >= t3a:
+      if not self._int_started:
+        self._int_err[:] = 0.0
+        self._int_started = True
+      self._int_err += pos_err * self._dt
+      self._int_err = np.clip(self._int_err, -0.15, 0.15)
+      tau += np.array([15.0, 50.0, 20.0]) * self._int_err
     elif self._int_started:
       self._int_err[:] = 0.0
       self._int_started = False
