@@ -386,16 +386,19 @@ class RobStudent(RobSimulation):
       self._int_started = False
 
     if self._ik_angles is not None and t >= t3a and self._home_waypoint is not None:
+      q3 = self._ik_angles[3]
       self.calculate_fk(theta)
       ee_err_norm = np.linalg.norm(self._home_waypoint - self.ee_pos)
-      jacobian = self.get_jacobian()
-      ee_vel = jacobian @ theta_dot
 
       if ee_err_norm < 50.0:
-        tau += -(jacobian.T @ (220.0 * ee_vel))
+        tau = (gravity +
+               np.array([140.0, 320.0, 160.0]) * (q3 - theta) -
+               np.array([1200.0, 3000.0, 1500.0]) * theta_dot)
       if ee_err_norm < 20.0:
-        tau += -(jacobian.T @ (700.0 * ee_vel))
-        tau = np.clip(tau, -np.array([45.0, 45.0, 45.0]), np.array([45.0, 45.0, 45.0]))
+        tau = (gravity +
+               np.array([70.0, 160.0, 90.0]) * (q3 - theta) -
+               np.array([1800.0, 4200.0, 2200.0]) * theta_dot)
+        tau = np.clip(tau, -np.array([60.0, 60.0, 60.0]), np.array([60.0, 60.0, 60.0]))
 
     self._last_tau = tau
     return tau
