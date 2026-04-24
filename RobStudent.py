@@ -22,6 +22,7 @@ class RobStudent(RobSimulation):
   def __init__(self, drawing_enabled=True):
     super().__init__(drawing_enabled=drawing_enabled)
     self._ik_angles = None
+    self._final_waypoint = None
     self._int_err = np.zeros(3)
     self._int_started = False
     self._last_m4 = float(self.m4)
@@ -135,6 +136,7 @@ class RobStudent(RobSimulation):
       q3 = choose_nearest_solution(waypoints[3], q2)
 
     self._ik_angles = (q0, q1, q2, q3)
+    self._final_waypoint = np.asarray(waypoints[3], dtype=float).copy()
     self._t_seg = (t_dwell0_end, t_arrive1, t_dwell1_end,
                    t_arrive2, t_dwell2_end, t_arrive3)
     self._int_err[:] = 0.0
@@ -295,6 +297,25 @@ class RobStudent(RobSimulation):
     elif self._int_started:
       self._int_err[:] = 0.0
       self._int_started = False
+
+    if self._ik_angles is not None and self._final_waypoint is not None and t >= t3a:
+      self.calculate_fk(theta)
+      ee_err = self._final_waypoint - self.ee_pos
+      ee_vel = self.get_jacobian() @ theta_dot
+      ee_err_norm = np.linalg.norm(ee_err)
+      ee_vel_norm = np.linalg.norm(ee_vel)
+
+      if ee_err_norm < 250.0:
+        if ee_err_norm < 80.0:
+          cart_kp = 0.10
+          cart_kd = 140.0
+        else:
+          cart_kp = 0.18
+          cart_kd = 90.0
+        tau += self.get_jacobian().T @ (cart_kp * ee_err - cart_kd * ee_vel)
+
+      if ee_err_norm < 120.0 and ee_vel_norm < 0.5:
+        tau += -18.0 * theta_dot
 
     self._last_tau = tau
     return tau
