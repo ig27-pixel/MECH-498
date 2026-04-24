@@ -17,6 +17,8 @@ import numpy as np
 from RobBase import Trajectory
 from RobSimulation import RobSimulation
 
+TAU_MAX = 100.0  # N*m per joint
+
 class RobStudent(RobSimulation):
 
   def __init__(self, drawing_enabled=True):
@@ -67,12 +69,13 @@ class RobStudent(RobSimulation):
     """
     total_duration = 30.0
 
-    t_dwell0_end = 1.5
-    t_arrive1 = 5.5
-    t_dwell1_end = 7.0
-    t_arrive2 = 11.5
-    t_dwell2_end = 13.0
-    t_arrive3 = 25.0
+    # Leave a long final hold so the arm can fully settle back at home.
+    t_dwell0_end = 1.0
+    t_arrive1 = 4.5
+    t_dwell1_end = 5.5
+    t_arrive2 = 9.5
+    t_dwell2_end = 10.5
+    t_arrive3 = 20.0
 
     def all_ik_solutions(wp_arr: np.ndarray):
       p_x, p_y, p_z = wp_arr
@@ -232,6 +235,9 @@ class RobStudent(RobSimulation):
 
     theta_ref, theta_dot_ref = self._get_desired_state(t)
 
+    pos_err = theta_ref - theta
+    vel_err = theta_dot_ref - theta_dot
+
     if self._ik_angles is not None:
       _, _, t1e, t2a, t2e, t3a = self._t_seg
       if t < t1e:
@@ -247,8 +253,8 @@ class RobStudent(RobSimulation):
         kp = np.array([260.0, 720.0, 300.0])
         kd = np.array([110.0, 300.0, 130.0])
       else:
-        kp = np.array([800.0, 2000.0, 900.0])
-        kd = np.array([110.0, 300.0, 130.0])
+        kp = np.array([520.0, 1350.0, 620.0])
+        kd = np.array([180.0, 460.0, 220.0])
     else:
       t2a = t2e = -1.0
       t3a = -1.0
@@ -265,28 +271,21 @@ class RobStudent(RobSimulation):
         self.g * 1e-3 * distal_mass * self.lc3 * c23,
     ])
 
-    tau = (kp * (theta_ref - theta) +
-           kd * (theta_dot_ref - theta_dot) +
+    tau = (kp * pos_err +
+           kd * vel_err +
            gravity)
 
     if self._ik_angles is not None and t2a <= t <= t2e:
       if not self._int_started:
         self._int_err[:] = 0.0
         self._int_started = True
-      self._int_err += (theta_ref - theta) * self._dt
+      self._int_err += pos_err * self._dt
       self._int_err = np.clip(self._int_err, -0.05, 0.05)
       tau += np.array([2.0, 12.0, 5.0]) * self._int_err
-    elif self._ik_angles is not None and t >= t3a:
-      if not self._int_started:
-        self._int_err[:] = 0.0
-        self._int_started = True
-      pos_err = theta_ref - theta
-      self._int_err += pos_err * self._dt
-      self._int_err = np.clip(self._int_err, -0.15, 0.15)
-      tau += np.array([15.0, 50.0, 20.0]) * self._int_err
     elif self._int_started:
       self._int_err[:] = 0.0
       self._int_started = False
 
+    tau = np.clip(tau, -TAU_MAX, TAU_MAX)
     self._last_tau = tau
     return tau
