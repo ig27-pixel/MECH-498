@@ -26,57 +26,6 @@ class RobStudent(RobSimulation):
     self._int_started = False
     self._last_m4 = float(self.m4)
 
-  def _smoothstep5(self, alpha: float) -> float:
-    alpha = np.clip(alpha, 0.0, 1.0)
-    return alpha**3 * (10.0 - 15.0 * alpha + 6.0 * alpha**2)
-
-  def _all_ik_solutions(self, waypoint: np.ndarray) -> list[np.ndarray]:
-    p_x, p_y, p_z = waypoint
-    theta_1 = np.array([np.arctan2(p_y, p_x), np.arctan2(-p_y, -p_x)])
-    p_x1 = p_x / np.cos(theta_1)
-    p_z1 = p_z - self.l1
-
-    c3 = (p_x1[0]**2 + p_z1**2 - self.l2**2 - self.l3**2) / (2.0 * self.l2 * self.l3)
-    c3 = np.clip(c3, -1.0, 1.0)
-    s3 = np.array([np.sqrt(max(0.0, 1.0 - c3**2)), -np.sqrt(max(0.0, 1.0 - c3**2))])
-    theta_3 = np.array([np.arctan2(s3[0], c3), np.arctan2(s3[1], c3)])
-
-    phi = np.array([np.arctan2(p_z1, p_x1[0]), np.arctan2(p_z1, p_x1[1])])
-    beta = np.array([
-        np.arctan2(self.l3 * s3[0], self.l2 + self.l3 * c3),
-        np.arctan2(self.l3 * s3[1], self.l2 + self.l3 * c3),
-    ])
-
-    theta_1 = np.array([theta_1[0], theta_1[0], theta_1[1], theta_1[1]])
-    theta_2 = np.array([
-        phi[0] + beta[1], phi[0] + beta[0],
-        phi[1] + beta[1], phi[1] + beta[0],
-    ])
-    theta_3 = np.array([theta_3[0], theta_3[1], theta_3[0], theta_3[1]])
-
-    solutions = []
-    for idx in range(4):
-      q = np.array([theta_1[idx], theta_2[idx], theta_3[idx]])
-      if (self._joint_1.is_inside_joint_limit(q[0]) and
-          self._joint_2.is_inside_joint_limit(q[1]) and
-          self._joint_3.is_inside_joint_limit(q[2])):
-        self.calculate_fk(q)
-        if np.linalg.norm(self.ee_pos - waypoint) <= 1.0:
-          if not any(np.allclose(q, old) for old in solutions):
-            solutions.append(q)
-    return solutions
-
-  def _choose_nearest_solution(self, waypoint: np.ndarray, prev_q: np.ndarray) -> np.ndarray:
-    waypoint = np.asarray(waypoint, dtype=float)
-    candidates = self._all_ik_solutions(waypoint)
-    if candidates:
-      return min(candidates, key=lambda q: np.linalg.norm(q - prev_q)).copy()
-
-    solved, q = self.calculate_ik(waypoint, prev_q)
-    if not solved:
-      raise ValueError(f"No IK solution found for waypoint {waypoint}")
-    return q.copy()
-
   def create_rob_trajectory(self, waypoints: np.ndarray) -> Trajectory:
     """Build a 30-second joint-space trajectory from 4 Cartesian waypoints.
 
@@ -126,18 +75,162 @@ class RobStudent(RobSimulation):
     t_arrive3 = 24.0
 
     home_seed = np.array([0.0, np.radians(-20.0), np.radians(20.0)])
-    q0_candidates = self._all_ik_solutions(np.asarray(waypoints[0], dtype=float))
+    home_waypoint = np.asarray(waypoints[0], dtype=float)
+    p_x, p_y, p_z = home_waypoint
+    theta_1 = np.array([np.arctan2(p_y, p_x), np.arctan2(-p_y, -p_x)])
+    p_x1 = p_x / np.cos(theta_1)
+    p_z1 = p_z - self.l1
+
+    c3 = (p_x1[0]**2 + p_z1**2 - self.l2**2 - self.l3**2) / (2.0 * self.l2 * self.l3)
+    c3 = np.clip(c3, -1.0, 1.0)
+    s3 = np.array([np.sqrt(max(0.0, 1.0 - c3**2)), -np.sqrt(max(0.0, 1.0 - c3**2))])
+    theta_3 = np.array([np.arctan2(s3[0], c3), np.arctan2(s3[1], c3)])
+
+    phi = np.array([np.arctan2(p_z1, p_x1[0]), np.arctan2(p_z1, p_x1[1])])
+    beta = np.array([
+        np.arctan2(self.l3 * s3[0], self.l2 + self.l3 * c3),
+        np.arctan2(self.l3 * s3[1], self.l2 + self.l3 * c3),
+    ])
+
+    theta_1 = np.array([theta_1[0], theta_1[0], theta_1[1], theta_1[1]])
+    theta_2 = np.array([
+        phi[0] + beta[1], phi[0] + beta[0],
+        phi[1] + beta[1], phi[1] + beta[0],
+    ])
+    theta_3 = np.array([theta_3[0], theta_3[1], theta_3[0], theta_3[1]])
+
+    q0_candidates = []
+    for idx in range(4):
+      q = np.array([theta_1[idx], theta_2[idx], theta_3[idx]])
+      if (self._joint_1.is_inside_joint_limit(q[0]) and
+          self._joint_2.is_inside_joint_limit(q[1]) and
+          self._joint_3.is_inside_joint_limit(q[2])):
+        self.calculate_fk(q)
+        if np.linalg.norm(self.ee_pos - home_waypoint) <= 1.0:
+          if not any(np.allclose(q, old) for old in q0_candidates):
+            q0_candidates.append(q)
+
     if q0_candidates:
       q0 = min(q0_candidates, key=lambda q: np.linalg.norm(q - home_seed))
     else:
       q0 = home_seed.copy()
 
-    q1 = self._choose_nearest_solution(waypoints[1], q0)
-    q2 = self._choose_nearest_solution(waypoints[2], q1)
+    waypoint_1 = np.asarray(waypoints[1], dtype=float)
+    p_x, p_y, p_z = waypoint_1
+    theta_1 = np.array([np.arctan2(p_y, p_x), np.arctan2(-p_y, -p_x)])
+    p_x1 = p_x / np.cos(theta_1)
+    p_z1 = p_z - self.l1
+    c3 = (p_x1[0]**2 + p_z1**2 - self.l2**2 - self.l3**2) / (2.0 * self.l2 * self.l3)
+    c3 = np.clip(c3, -1.0, 1.0)
+    s3 = np.array([np.sqrt(max(0.0, 1.0 - c3**2)), -np.sqrt(max(0.0, 1.0 - c3**2))])
+    theta_3 = np.array([np.arctan2(s3[0], c3), np.arctan2(s3[1], c3)])
+    phi = np.array([np.arctan2(p_z1, p_x1[0]), np.arctan2(p_z1, p_x1[1])])
+    beta = np.array([
+        np.arctan2(self.l3 * s3[0], self.l2 + self.l3 * c3),
+        np.arctan2(self.l3 * s3[1], self.l2 + self.l3 * c3),
+    ])
+    theta_1 = np.array([theta_1[0], theta_1[0], theta_1[1], theta_1[1]])
+    theta_2 = np.array([
+        phi[0] + beta[1], phi[0] + beta[0],
+        phi[1] + beta[1], phi[1] + beta[0],
+    ])
+    theta_3 = np.array([theta_3[0], theta_3[1], theta_3[0], theta_3[1]])
+    q1_candidates = []
+    for idx in range(4):
+      q = np.array([theta_1[idx], theta_2[idx], theta_3[idx]])
+      if (self._joint_1.is_inside_joint_limit(q[0]) and
+          self._joint_2.is_inside_joint_limit(q[1]) and
+          self._joint_3.is_inside_joint_limit(q[2])):
+        self.calculate_fk(q)
+        if np.linalg.norm(self.ee_pos - waypoint_1) <= 1.0:
+          if not any(np.allclose(q, old) for old in q1_candidates):
+            q1_candidates.append(q)
+    if q1_candidates:
+      q1 = min(q1_candidates, key=lambda q: np.linalg.norm(q - q0)).copy()
+    else:
+      solved, q1 = self.calculate_ik(waypoint_1, q0)
+      if not solved:
+        raise ValueError(f"No IK solution found for waypoint {waypoint_1}")
+      q1 = q1.copy()
+
+    waypoint_2 = np.asarray(waypoints[2], dtype=float)
+    p_x, p_y, p_z = waypoint_2
+    theta_1 = np.array([np.arctan2(p_y, p_x), np.arctan2(-p_y, -p_x)])
+    p_x1 = p_x / np.cos(theta_1)
+    p_z1 = p_z - self.l1
+    c3 = (p_x1[0]**2 + p_z1**2 - self.l2**2 - self.l3**2) / (2.0 * self.l2 * self.l3)
+    c3 = np.clip(c3, -1.0, 1.0)
+    s3 = np.array([np.sqrt(max(0.0, 1.0 - c3**2)), -np.sqrt(max(0.0, 1.0 - c3**2))])
+    theta_3 = np.array([np.arctan2(s3[0], c3), np.arctan2(s3[1], c3)])
+    phi = np.array([np.arctan2(p_z1, p_x1[0]), np.arctan2(p_z1, p_x1[1])])
+    beta = np.array([
+        np.arctan2(self.l3 * s3[0], self.l2 + self.l3 * c3),
+        np.arctan2(self.l3 * s3[1], self.l2 + self.l3 * c3),
+    ])
+    theta_1 = np.array([theta_1[0], theta_1[0], theta_1[1], theta_1[1]])
+    theta_2 = np.array([
+        phi[0] + beta[1], phi[0] + beta[0],
+        phi[1] + beta[1], phi[1] + beta[0],
+    ])
+    theta_3 = np.array([theta_3[0], theta_3[1], theta_3[0], theta_3[1]])
+    q2_candidates = []
+    for idx in range(4):
+      q = np.array([theta_1[idx], theta_2[idx], theta_3[idx]])
+      if (self._joint_1.is_inside_joint_limit(q[0]) and
+          self._joint_2.is_inside_joint_limit(q[1]) and
+          self._joint_3.is_inside_joint_limit(q[2])):
+        self.calculate_fk(q)
+        if np.linalg.norm(self.ee_pos - waypoint_2) <= 1.0:
+          if not any(np.allclose(q, old) for old in q2_candidates):
+            q2_candidates.append(q)
+    if q2_candidates:
+      q2 = min(q2_candidates, key=lambda q: np.linalg.norm(q - q1)).copy()
+    else:
+      solved, q2 = self.calculate_ik(waypoint_2, q1)
+      if not solved:
+        raise ValueError(f"No IK solution found for waypoint {waypoint_2}")
+      q2 = q2.copy()
+
     if np.linalg.norm(np.asarray(waypoints[3], dtype=float) - np.asarray(waypoints[0], dtype=float)) < 1e-6:
       q3 = q0.copy()
     else:
-      q3 = self._choose_nearest_solution(waypoints[3], q2)
+      waypoint_3 = np.asarray(waypoints[3], dtype=float)
+      p_x, p_y, p_z = waypoint_3
+      theta_1 = np.array([np.arctan2(p_y, p_x), np.arctan2(-p_y, -p_x)])
+      p_x1 = p_x / np.cos(theta_1)
+      p_z1 = p_z - self.l1
+      c3 = (p_x1[0]**2 + p_z1**2 - self.l2**2 - self.l3**2) / (2.0 * self.l2 * self.l3)
+      c3 = np.clip(c3, -1.0, 1.0)
+      s3 = np.array([np.sqrt(max(0.0, 1.0 - c3**2)), -np.sqrt(max(0.0, 1.0 - c3**2))])
+      theta_3 = np.array([np.arctan2(s3[0], c3), np.arctan2(s3[1], c3)])
+      phi = np.array([np.arctan2(p_z1, p_x1[0]), np.arctan2(p_z1, p_x1[1])])
+      beta = np.array([
+          np.arctan2(self.l3 * s3[0], self.l2 + self.l3 * c3),
+          np.arctan2(self.l3 * s3[1], self.l2 + self.l3 * c3),
+      ])
+      theta_1 = np.array([theta_1[0], theta_1[0], theta_1[1], theta_1[1]])
+      theta_2 = np.array([
+          phi[0] + beta[1], phi[0] + beta[0],
+          phi[1] + beta[1], phi[1] + beta[0],
+      ])
+      theta_3 = np.array([theta_3[0], theta_3[1], theta_3[0], theta_3[1]])
+      q3_candidates = []
+      for idx in range(4):
+        q = np.array([theta_1[idx], theta_2[idx], theta_3[idx]])
+        if (self._joint_1.is_inside_joint_limit(q[0]) and
+            self._joint_2.is_inside_joint_limit(q[1]) and
+            self._joint_3.is_inside_joint_limit(q[2])):
+          self.calculate_fk(q)
+          if np.linalg.norm(self.ee_pos - waypoint_3) <= 1.0:
+            if not any(np.allclose(q, old) for old in q3_candidates):
+              q3_candidates.append(q)
+      if q3_candidates:
+        q3 = min(q3_candidates, key=lambda q: np.linalg.norm(q - q2)).copy()
+      else:
+        solved, q3 = self.calculate_ik(waypoint_3, q2)
+        if not solved:
+          raise ValueError(f"No IK solution found for waypoint {waypoint_3}")
+        q3 = q3.copy()
     self._ik_angles = (q0, q1, q2, q3)
     self._t_seg = (t_dwell0_end, t_arrive1, t_dwell1_end,
                    t_arrive2, t_dwell2_end, t_arrive3)
@@ -154,17 +247,23 @@ class RobStudent(RobSimulation):
         q = q0.copy()
       elif t < t_arrive1:
         alpha = (t - t_dwell0_end) / (t_arrive1 - t_dwell0_end)
-        q = q0 + self._smoothstep5(alpha) * (q1 - q0)
+        alpha = np.clip(alpha, 0.0, 1.0)
+        blend = alpha**3 * (10.0 - 15.0 * alpha + 6.0 * alpha**2)
+        q = q0 + blend * (q1 - q0)
       elif t < t_dwell1_end:
         q = q1.copy()
       elif t < t_arrive2:
         alpha = (t - t_dwell1_end) / (t_arrive2 - t_dwell1_end)
-        q = q1 + self._smoothstep5(alpha) * (q2 - q1)
+        alpha = np.clip(alpha, 0.0, 1.0)
+        blend = alpha**3 * (10.0 - 15.0 * alpha + 6.0 * alpha**2)
+        q = q1 + blend * (q2 - q1)
       elif t < t_dwell2_end:
         q = q2.copy()
       elif t < t_arrive3:
         alpha = (t - t_dwell2_end) / (t_arrive3 - t_dwell2_end)
-        q = q2 + self._smoothstep5(alpha) * (q3 - q2)
+        alpha = np.clip(alpha, 0.0, 1.0)
+        blend = alpha**3 * (10.0 - 15.0 * alpha + 6.0 * alpha**2)
+        q = q2 + blend * (q3 - q2)
       else:
         q = q3.copy()
       joint_poses[:, i] = q
