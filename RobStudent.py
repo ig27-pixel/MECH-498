@@ -22,6 +22,7 @@ class RobStudent(RobSimulation):
   def __init__(self, drawing_enabled=True):
     super().__init__(drawing_enabled=drawing_enabled)
     self._ik_angles = None
+    self._home_waypoint = None
     self._int_err = np.zeros(3)
     self._int_started = False
     self._last_m4 = float(self.m4)
@@ -114,6 +115,7 @@ class RobStudent(RobSimulation):
       q0 = min(q0_candidates, key=lambda q: np.linalg.norm(q - home_seed))
     else:
       q0 = home_seed.copy()
+    self._home_waypoint = home_waypoint.copy()
 
     waypoint_1 = np.asarray(waypoints[1], dtype=float)
     p_x, p_y, p_z = waypoint_1
@@ -396,6 +398,13 @@ class RobStudent(RobSimulation):
         tau += -np.array([120.0, 260.0, 130.0]) * theta_dot
       if joint_err_norm < 0.05:
         tau = np.clip(tau, -np.array([35.0, 35.0, 35.0]), np.array([35.0, 35.0, 35.0]))
+      if self._home_waypoint is not None and joint_err_norm < 0.15:
+        self.calculate_fk(theta)
+        ee_err = self._home_waypoint - self.ee_pos
+        if np.linalg.norm(ee_err) < 120.0:
+          jacobian = self.get_jacobian()
+          ee_vel = jacobian @ theta_dot
+          tau += -(jacobian.T @ (220.0 * ee_vel))
 
     self._last_tau = tau
     return tau
