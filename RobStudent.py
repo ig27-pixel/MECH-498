@@ -391,13 +391,19 @@ class RobStudent(RobSimulation):
       ee_err_norm = np.linalg.norm(self._home_waypoint - self.ee_pos)
 
       if ee_err_norm < 80.0:
-        tau += -np.array([60.0, 150.0, 70.0]) * theta_dot
+        tau += -np.array([80.0, 200.0, 95.0]) * theta_dot
 
-      if ee_err_norm < 40.0:
+      if ee_err_norm < 50.0:
         tau = (gravity +
-               np.array([140.0, 320.0, 160.0]) * (q3 - theta) -
-               np.array([700.0, 1700.0, 800.0]) * theta_dot)
-        tau = np.clip(tau, -np.array([35.0, 35.0, 35.0]), np.array([35.0, 35.0, 35.0]))
+               np.array([220.0, 520.0, 240.0]) * (q3 - theta) -
+               np.array([1400.0, 3200.0, 1500.0]) * theta_dot)
+        tau = np.clip(tau, -np.array([55.0, 55.0, 55.0]), np.array([55.0, 55.0, 55.0]))
+
+      if ee_err_norm < 20.0:
+        tau = (gravity +
+               np.array([120.0, 280.0, 140.0]) * (q3 - theta) -
+               np.array([2200.0, 4800.0, 2400.0]) * theta_dot)
+        tau = np.clip(tau, -np.array([30.0, 30.0, 30.0]), np.array([30.0, 30.0, 30.0]))
 
     self._last_tau = tau
     return tau
