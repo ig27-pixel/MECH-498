@@ -247,8 +247,8 @@ class RobStudent(RobSimulation):
         kp = np.array([260.0, 720.0, 300.0])
         kd = np.array([110.0, 300.0, 130.0])
       else:
-        kp = np.array([500.0, 1400.0, 600.0])
-        kd = np.array([100.0, 300.0, 130.0])
+        kp = np.array([600.0, 1600.0, 700.0])
+        kd = np.array([300.0, 900.0, 400.0])
     else:
       t2a = t2e = -1.0
       t3a = -1.0
