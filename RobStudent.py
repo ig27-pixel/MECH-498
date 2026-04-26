@@ -23,7 +23,6 @@ class RobStudent(RobSimulation):
     super().__init__(drawing_enabled=drawing_enabled)
     self._ik_angles = None
     self._home_waypoint = None
-    self._final_hold_started = False
     self._int_err = np.zeros(3)
     self._int_started = False
     self._last_m4 = float(self.m4)
@@ -354,7 +353,6 @@ class RobStudent(RobSimulation):
     # Use phase-dependent gains to balance travel speed and settling.
     if self._ik_angles is not None:
       _, _, t1e, t2a, t2e, t3a = self._t_seg
-      q3 = self._ik_angles[3]
       if t < t1e:
         kp = np.array([160.0, 420.0, 170.0])
         kd = np.array([55.0, 150.0, 65.0])
@@ -404,27 +402,15 @@ class RobStudent(RobSimulation):
       self._int_err[:] = 0.0
       self._int_started = False
 
-    # Apply extra damping only after the arm is back near the final home waypoint.
+    # During final home hold, use strong uncapped damping to ensure velocity settles.
     if self._ik_angles is not None and t >= t3a and self._home_waypoint is not None:
       q3 = self._ik_angles[3]
       self.calculate_fk(theta)
       ee_err_norm = np.linalg.norm(self._home_waypoint - self.ee_pos)
-
-      # Latch into a dedicated final hold once home has been reached.
       if ee_err_norm < 50.0:
-        self._final_hold_started = True
-
-      if self._final_hold_started:
-        tau = (gravity +
-               np.array([110.0, 260.0, 130.0]) * (q3 - theta) -
-               np.array([900.0, 2400.0, 1200.0]) * theta_dot)
-        tau = np.clip(tau, -np.array([40.0, 40.0, 40.0]), np.array([40.0, 40.0, 40.0]))
-
-        if ee_err_norm < 20.0:
-          tau = (gravity +
-                 np.array([60.0, 140.0, 70.0]) * (q3 - theta) -
-                 np.array([1400.0, 3600.0, 1800.0]) * theta_dot)
-          tau = np.clip(tau, -np.array([25.0, 25.0, 25.0]), np.array([25.0, 25.0, 25.0]))
+        kp_hold = np.array([300.0, 750.0, 350.0])
+        kd_hold = np.array([500.0, 1300.0, 600.0])
+        tau = gravity + kp_hold * (q3 - theta) - kd_hold * theta_dot
 
     self._last_tau = tau
     return tau
