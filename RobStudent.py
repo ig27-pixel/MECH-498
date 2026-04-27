@@ -74,7 +74,7 @@ class RobStudent(RobSimulation):
     t_dwell1_end = 7.0
     t_arrive2 = 11.5
     t_dwell2_end = 13.0
-    t_arrive3 = 25.0
+    t_arrive3 = 20.0
 
     # Prefer the nominal home posture when multiple IK solutions exist.
     home_seed = np.array([0.0, np.radians(-20.0), np.radians(20.0)])
@@ -363,11 +363,11 @@ class RobStudent(RobSimulation):
         kp = np.array([280.0, 760.0, 320.0])
         kd = np.array([95.0, 260.0, 110.0])
       elif t < t3a:
-        kp = np.array([260.0, 720.0, 300.0])
-        kd = np.array([110.0, 300.0, 130.0])
+        kp = np.array([400.0, 1000.0, 450.0])
+        kd = np.array([150.0, 400.0, 175.0])
       else:
-        kp = np.array([780.0, 1900.0, 880.0])
-        kd = np.array([140.0, 380.0, 170.0])
+        kp = np.array([200.0, 500.0, 220.0])
+        kd = np.array([120.0, 300.0, 135.0])
     else:
       t2a = t2e = -1.0
       t3a = -1.0
@@ -401,16 +401,6 @@ class RobStudent(RobSimulation):
     elif self._int_started:
       self._int_err[:] = 0.0
       self._int_started = False
-
-    # During final home hold, use strong uncapped damping to ensure velocity settles.
-    if self._ik_angles is not None and t >= t3a and self._home_waypoint is not None:
-      q3 = self._ik_angles[3]
-      self.calculate_fk(theta)
-      ee_err_norm = np.linalg.norm(self._home_waypoint - self.ee_pos)
-      if ee_err_norm < 50.0:
-        kp_hold = np.array([300.0, 750.0, 350.0])
-        kd_hold = np.array([500.0, 1300.0, 600.0])
-        tau = gravity + kp_hold * (q3 - theta) - kd_hold * theta_dot
 
     self._last_tau = tau
     return tau
