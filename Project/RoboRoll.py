@@ -54,7 +54,7 @@ class RoboRoll(object):
     A_3 = 500.0
     D_1 = 500.0
     NOZZLE_OFFSET = 200.0
-    TOOL_TILT_X = -math.pi / 2
+    TOOL_TILT_X = -math.acos(0.999624217)
 
     J1_LIMITS = (-math.pi, math.pi)
     J2_LIMITS = (-math.pi / 2, math.pi / 2)

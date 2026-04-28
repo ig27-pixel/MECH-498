@@ -67,7 +67,7 @@ def _tz(distance: float) -> np.ndarray:
 class BaseCustomRobot(object):
     """4-DOF custom painting robot used by the project autograder."""
 
-    TOOL_TILT_X = -math.pi / 2
+    TOOL_TILT_X = -math.acos(0.999624217)
 
     def __init__(self, config_path: str | None = None, drawing_enabled: bool = False):
         del drawing_enabled
