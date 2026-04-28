@@ -38,16 +38,16 @@ class BaseCustomRobot(object):
     DH parameters and joint limits are loaded from robot_config.yaml.
     """
 
-    def __init__(self, config_path: str = None):
+    def __init__(self, config_path: str = None, drawing_enabled: bool = False):
         cfg = _load_config(config_path)
 
         joints = cfg['joints']
         self.NUM_JOINTS = cfg['num_dof']
 
         # Extract DH parameters and joint limits from config
-        self.ALPHA        = [j['alpha']       for j in joints]
-        self.A            = [j['a']           for j in joints]
-        self.D            = [j['d']           for j in joints]
+        self.ALPHA        = [j['alpha']        for j in joints]
+        self.A            = [j['a']            for j in joints]
+        self.D            = [j['d']            for j in joints]
         self.THETA_OFFSET = [j['theta_offset'] for j in joints]
         self.JOINT_LIMITS = [(j['limits'][0], j['limits'][1]) for j in joints]
 

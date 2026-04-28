@@ -8,33 +8,52 @@
 # All distances in millimeters, all angles in radians.
 
 robot_name: "RoboRoll Coatings Painting Robot"
+robot_type: "custom"
+student_name: "Isaiah Gonzalez"
 num_dof: 4
+
+# Reachable workspace bounding box (mm)
+workspace:
+  x_min: -1400.0
+  x_max:  1400.0
+  y_min: -1400.0
+  y_max:  1400.0
+  z_min: -700.0
+  z_max:  1700.0
 
 joints:
   - name: base_yaw
+    type: revolute
     alpha: 0.0
     a: 0.0
     d: 500.0
+    theta: 0.0
     theta_offset: 0.0
     limits: [-3.141592653589793, 3.141592653589793]
 
   - name: shoulder_pitch
+    type: revolute
     alpha: -1.5707963267948966
     a: 0.0
     d: 0.0
+    theta: 0.0
     theta_offset: 0.0
     limits: [-1.5707963267948966, 1.5707963267948966]
 
   - name: elbow_pitch
+    type: revolute
     alpha: 0.0
     a: 700.0
     d: 0.0
+    theta: 0.0
     theta_offset: 0.0
     limits: [-1.0471975511965976, 2.0943951023931953]
 
   - name: wrist_pitch
+    type: revolute
     alpha: 0.0
     a: 500.0
     d: 0.0
+    theta: 0.0
     theta_offset: 0.0
     limits: [-1.5707963267948966, 1.5707963267948966]
