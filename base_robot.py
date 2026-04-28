@@ -45,11 +45,25 @@ def _rot_z(theta: float) -> np.ndarray:
     ])
 
 
+def _homogeneous(rotation: np.ndarray, translation: np.ndarray) -> np.ndarray:
+    frame = np.eye(4)
+    frame[:3, :3] = rotation
+    frame[:3, 3] = translation
+    return frame
+
+
+def _tx(distance: float) -> np.ndarray:
+    return _homogeneous(np.eye(3), np.array([distance, 0.0, 0.0]))
+
+
+def _tz(distance: float) -> np.ndarray:
+    return _homogeneous(np.eye(3), np.array([0.0, 0.0, distance]))
+
+
 class BaseCustomRobot(object):
     """4-DOF custom painting robot used by the project autograder."""
 
-    # The project frames show a small fixed nozzle tilt relative to the arm.
-    TOOL_TILT_X = -0.02741  # rad
+    TOOL_TILT_X = -math.acos(0.999624217)
 
     def __init__(self, config_path: str | None = None, drawing_enabled: bool = False):
         del drawing_enabled
@@ -97,32 +111,29 @@ class BaseCustomRobot(object):
         return angles
 
     def _forward_position(self, joint_angles: np.ndarray) -> np.ndarray:
-        t1, t2, t3, _ = joint_angles
-
-        upper_arm = self.A[2]
-        forearm = self.A[3]
-        base_height = self.D[0]
-
-        radial = upper_arm * math.cos(t2) + forearm * math.cos(t2 + t3)
-        height = base_height - upper_arm * math.sin(t2) - forearm * math.sin(t2 + t3)
-
-        return np.array([
-            radial * math.cos(t1),
-            radial * math.sin(t1),
-            height,
-        ])
+        return self._forward_frame(joint_angles)[:3, 3]
 
     def _forward_rotation(self, joint_angles: np.ndarray) -> np.ndarray:
+        return self._forward_frame(joint_angles)[:3, :3]
+
+    def _forward_frame(self, joint_angles: np.ndarray) -> np.ndarray:
         t1, t2, t3, t4 = joint_angles
-        wrist_yaw = t2 + t3 + t4
-        return _rot_z(t1) @ _rot_x(self.TOOL_TILT_X) @ _rot_z(wrist_yaw)
+
+        return (
+            _tz(self.D[0])
+            @ _homogeneous(_rot_z(t1), np.zeros(3))
+            @ _homogeneous(_rot_x(self.TOOL_TILT_X), np.zeros(3))
+            @ _homogeneous(_rot_z(t2), np.zeros(3))
+            @ _tx(self.A[2])
+            @ _homogeneous(_rot_z(t3), np.zeros(3))
+            @ _tx(self.A[3])
+            @ _homogeneous(_rot_z(t4), np.zeros(3))
+        )
 
     def calculate_fk(self, joint_angles: np.ndarray) -> np.ndarray:
         angles = self._check_joint_angles(joint_angles)
 
-        frame = np.eye(4)
-        frame[:3, :3] = self._forward_rotation(angles)
-        frame[:3, 3] = self._forward_position(angles)
+        frame = self._forward_frame(angles)
 
         self._joint_angles = angles.copy()
         self._ee_frame = frame
@@ -141,61 +152,51 @@ class BaseCustomRobot(object):
         if prev.shape != (self.NUM_JOINTS,):
             return False, np.zeros(self.NUM_JOINTS)
 
-        px, py, pz = target[:3, 3]
-        height = self.D[0] - pz
-
-        upper_arm = self.A[2]
-        forearm = self.A[3]
-
+        base_height = self.D[0]
+        link_1 = self.A[2]
+        link_2 = self.A[3]
         solutions = []
+        theta1 = math.atan2(-target[0, 2], target[1, 2])
+        theta1 = (theta1 + math.pi) % (2.0 * math.pi) - math.pi
+        total_wrist_yaw = math.atan2(-target[2, 0], -target[2, 1])
+        total_wrist_yaw = (total_wrist_yaw + math.pi) % (2.0 * math.pi) - math.pi
 
-        theta1_seed = math.atan2(py, px)
-        theta1_alt = theta1_seed + math.pi
-        if theta1_alt > math.pi:
-            theta1_alt -= 2.0 * math.pi
-        theta1_candidates = [theta1_seed, theta1_alt]
-
-        for theta1 in theta1_candidates:
-            if not self.joints[0].is_inside_joint_limit(theta1):
+        for theta1_candidate in (theta1, ((theta1 + math.pi) % (2.0 * math.pi)) - math.pi):
+            if not self.joints[0].is_inside_joint_limit(theta1_candidate):
                 continue
 
-            radial = px * math.cos(theta1) + py * math.sin(theta1)
-            cos_theta3 = (
-                radial * radial + height * height - upper_arm * upper_arm - forearm * forearm
-            ) / (2.0 * upper_arm * forearm)
+            base_to_target = target[:3, 3] - np.array([0.0, 0.0, base_height])
+            planar = _rot_x(-self.TOOL_TILT_X) @ (_rot_z(-theta1_candidate) @ base_to_target)
+            px, py = float(planar[0]), float(planar[1])
+
+            cos_theta3 = (px * px + py * py - link_1 * link_1 - link_2 * link_2) / (2.0 * link_1 * link_2)
             if abs(cos_theta3) > 1.0 + 1e-9:
                 continue
             cos_theta3 = float(np.clip(cos_theta3, -1.0, 1.0))
-
-            # Remove the base yaw. The remaining first row is [cos(psi), -sin(psi), 0]
-            # for psi = theta_2 + theta_3 + theta_4.
-            base_removed = _rot_z(-theta1) @ target[:3, :3]
-            wrist_yaw = math.atan2(-base_removed[0, 1], base_removed[0, 0])
 
             for sign in (1.0, -1.0):
                 theta3 = sign * math.acos(cos_theta3)
                 if not self.joints[2].is_inside_joint_limit(theta3):
                     continue
 
-                beta = math.atan2(height, radial)
-                gamma = math.atan2(
-                    forearm * math.sin(theta3),
-                    upper_arm + forearm * math.cos(theta3),
+                theta2 = math.atan2(py, px) - math.atan2(
+                    link_2 * math.sin(theta3),
+                    link_1 + link_2 * math.cos(theta3),
                 )
-                theta2 = beta - gamma
+                theta2 = (theta2 + math.pi) % (2.0 * math.pi) - math.pi
                 if not self.joints[1].is_inside_joint_limit(theta2):
                     continue
 
-                theta4 = (wrist_yaw - theta2 - theta3 + math.pi) % (2.0 * math.pi) - math.pi
+                theta4 = total_wrist_yaw - theta2 - theta3
+                theta4 = (theta4 + math.pi) % (2.0 * math.pi) - math.pi
                 if not self.joints[3].is_inside_joint_limit(theta4):
                     continue
 
-                candidate = np.array([theta1, theta2, theta3, theta4], dtype=float)
-
-                fk_candidate = self.calculate_fk(candidate)
+                candidate = np.array([theta1_candidate, theta2, theta3, theta4], dtype=float)
+                fk_candidate = self._forward_frame(candidate)
                 pos_err = np.linalg.norm(fk_candidate[:3, 3] - target[:3, 3])
                 rot_err = np.linalg.norm(fk_candidate[:3, :3] - target[:3, :3])
-                if pos_err <= 1.0 and rot_err <= 2e-3:
+                if pos_err <= 1e-3 and rot_err <= 1e-5:
                     solutions.append(candidate)
 
         if not solutions:
