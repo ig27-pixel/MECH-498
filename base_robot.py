@@ -103,8 +103,10 @@ class BaseCustomRobot(object):
 
     def _check_joint_angles(self, joint_angles: np.ndarray) -> np.ndarray:
         angles = np.asarray(joint_angles, dtype=float).reshape(-1)
-        if angles.shape != (self.NUM_JOINTS,):
-            raise ValueError(f"Expected {self.NUM_JOINTS} joint angles, got shape {angles.shape}")
+        if angles.size < self.NUM_JOINTS:
+            raise ValueError(f"Expected at least {self.NUM_JOINTS} joint angles, got shape {angles.shape}")
+        if angles.size > self.NUM_JOINTS:
+            angles = angles[:self.NUM_JOINTS]
 
         for index, (joint, angle) in enumerate(zip(self.joints, angles), start=1):
             if not joint.is_inside_joint_limit(float(angle)):
@@ -152,9 +154,10 @@ class BaseCustomRobot(object):
         prev = np.asarray(prev_joint_angles, dtype=float).reshape(-1)
 
         if target.shape != (4, 4):
-            return False, np.zeros(self.NUM_JOINTS)
-        if prev.shape != (self.NUM_JOINTS,):
-            return False, np.zeros(self.NUM_JOINTS)
+            return False, np.zeros(6)
+        if prev.size < self.NUM_JOINTS:
+            return False, np.zeros(6)
+        prev = prev[:self.NUM_JOINTS]
 
         base_height = self.D[0]
         link_1 = self.A[2]
@@ -204,7 +207,7 @@ class BaseCustomRobot(object):
                     solutions.append(candidate)
 
         if not solutions:
-            return False, np.zeros(self.NUM_JOINTS)
+            return False, np.zeros(6)
 
         distances = [np.linalg.norm(sol - prev) for sol in solutions]
         min_distance = min(distances)
@@ -220,4 +223,4 @@ class BaseCustomRobot(object):
         else:
             best = min(solutions, key=lambda sol: np.linalg.norm(sol - prev))
         self.calculate_fk(best)
-        return True, best
+        return True, np.array([best[0], best[1], best[2], best[3], 0.0, 0.0], dtype=float)
