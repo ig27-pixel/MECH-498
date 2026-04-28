@@ -25,6 +25,10 @@ def _load_config(path: str | None = None) -> dict:
         return yaml.safe_load(handle)
 
 
+def _deg_to_rad(angle: float) -> float:
+    return math.radians(float(angle))
+
+
 def _rot_x(theta: float) -> np.ndarray:
     c = math.cos(theta)
     s = math.sin(theta)
@@ -73,14 +77,14 @@ class BaseCustomRobot(object):
         self.NUM_JOINTS = int(cfg["num_dof"])
         self.A = [float(j["a"]) for j in joint_cfgs]
         self.D = [float(j["d"]) for j in joint_cfgs]
-        self.THETA_OFFSET = [float(j.get("theta_offset", 0.0)) for j in joint_cfgs]
+        self.THETA_OFFSET = [_deg_to_rad(j.get("theta_offset", 0.0)) for j in joint_cfgs]
 
         self._joints = [
             JointSpec(
                 name=str(j.get("name", f"joint_{index + 1}")),
-                low_limit=float(j["limits"][0]),
-                high_limit=float(j["limits"][1]),
-                theta_offset=float(j.get("theta_offset", 0.0)),
+                low_limit=_deg_to_rad(j["limits"][0]),
+                high_limit=_deg_to_rad(j["limits"][1]),
+                theta_offset=_deg_to_rad(j.get("theta_offset", 0.0)),
             )
             for index, j in enumerate(joint_cfgs)
         ]
