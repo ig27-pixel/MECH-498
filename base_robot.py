@@ -202,6 +202,18 @@ class BaseCustomRobot(object):
         if not solutions:
             return False, np.zeros(self.NUM_JOINTS)
 
-        best = min(solutions, key=lambda sol: np.linalg.norm(sol - prev))
+        distances = [np.linalg.norm(sol - prev) for sol in solutions]
+        min_distance = min(distances)
+
+        close_solutions = [
+            sol for sol, distance in zip(solutions, distances)
+            if distance <= min_distance + 1e-4
+        ]
+
+        singular_close = [sol for sol in close_solutions if abs(sol[2]) <= 1e-4]
+        if singular_close:
+            best = max(singular_close, key=lambda sol: sol[2])
+        else:
+            best = min(solutions, key=lambda sol: np.linalg.norm(sol - prev))
         self.calculate_fk(best)
         return True, best
