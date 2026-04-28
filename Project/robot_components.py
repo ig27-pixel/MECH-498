@@ -211,12 +211,12 @@ class Brush(object):
       return
     self._draw(enable_all=False)
 
-  def paint(self):
+  def paint(self, show_all_tools: bool = False):
     """Draw the enabled brush and leave a 'paint spot' behind in space"""
     if not self._drawing_enabled:
       return 
-    
-    self._draw(enable_all=True)
+      
+    self._draw(enable_all=show_all_tools)
 
     if self._selection != 0:
       self._ax.plot([self.selected_brush_frame[0, 3]],

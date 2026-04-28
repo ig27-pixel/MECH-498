@@ -19,7 +19,22 @@ Run the dedicated demo script from the repository root:
 python Project/project_demo.py
 ```
 
-This opens a matplotlib window and animates a short RoboRoll motion sequence intended for the robot demonstration / visualization portion of the project.
+This opens a matplotlib window and runs a Lab-3-style painting demonstration:
+
+- a brush tool is attached to the end effector
+- the RoboRoll arm follows a smooth IK-generated path
+- colored paint points are left behind in 3D space as the robot moves
+
+The effect is intentionally similar to the `picasso.py` style demonstration in `Lab-3`, but adapted to the 4-DOF RoboRoll project robot.
+
+You can speed the demo up by adjusting the constructor settings inside
+`project_demo.py`:
+
+- `samples_per_segment`: fewer path samples between waypoints
+- `max_joint_step_deg`: larger allowed IK interpolation step
+- `frame_delay`: less time between rendered frames
+- `paint_stride`: paint every Nth frame instead of every frame
+- `show_all_brushes`: keep all brushes visible while only the selected one paints
 
 ## Notes
 
