@@ -1,0 +1,44 @@
+# robot_config.yaml
+# RoboRoll Coatings — 4-DOF Painting Robot
+# Isaiah Gonzalez | MECH 498
+#
+# Modified DH convention:
+#   T_i = DH(alpha_{i-1}, a_{i-1}, d_i, theta_i)
+#
+# All distances in millimeters, all angles in radians.
+
+robot_name: "RoboRoll Coatings Painting Robot"
+num_dof: 4
+
+joints:
+  - name: base_yaw
+    alpha: 0.0
+    a: 0.0
+    d: 500.0
+    theta_offset: 0.0
+    lower_limit: -3.141592653589793
+    upper_limit:  3.141592653589793
+
+  - name: shoulder_pitch
+    alpha: -1.5707963267948966
+    a: 0.0
+    d: 0.0
+    theta_offset: 0.0
+    lower_limit: -1.5707963267948966
+    upper_limit:  1.5707963267948966
+
+  - name: elbow_pitch
+    alpha: 0.0
+    a: 700.0
+    d: 0.0
+    theta_offset: 0.0
+    lower_limit: -1.0471975511965976
+    upper_limit:  2.0943951023931953
+
+  - name: wrist_pitch
+    alpha: 0.0
+    a: 500.0
+    d: 0.0
+    theta_offset: 0.0
+    lower_limit: -1.5707963267948966
+    upper_limit:  1.5707963267948966

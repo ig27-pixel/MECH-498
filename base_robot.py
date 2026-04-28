@@ -3,17 +3,12 @@
 # MECH 498 — Introduction to Robotics
 #
 # 4-DOF robotic painting arm (Modified DH convention)
-#
-# DH Table (Modified DH):
-#   i  | alpha_{i-1} | a_{i-1} (mm) | d_i (mm) | theta_i
-#   ---+-------------+--------------+----------+--------
-#   1  |      0      |      0       |   500    | theta_1  (base yaw)
-#   2  |   -pi/2     |      0       |    0     | theta_2  (shoulder pitch)
-#   3  |      0      |    700       |    0     | theta_3  (elbow pitch)
-#   4  |      0      |    500       |    0     | theta_4  (wrist pitch)
+# Parameters loaded from robot_config.yaml
 
 import numpy as np
 import math
+import yaml
+import os
 from typing import Tuple, List
 
 
@@ -29,27 +24,32 @@ def _dh_transform(alpha: float, a: float, d: float, theta: float) -> np.ndarray:
     ])
 
 
+def _load_config(path: str = None) -> dict:
+    """Load robot_config.yaml from the given path or same directory as this file."""
+    if path is None:
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'robot_config.yaml')
+    with open(path, 'r') as f:
+        return yaml.safe_load(f)
+
+
 class BaseCustomRobot(object):
-    """4-DOF construction painting robot for RoboRoll Coatings."""
+    """4-DOF construction painting robot for RoboRoll Coatings.
 
-    # ── DH parameters ──────────────────────────────────────────────────────────
-    ALPHA = [0.0, -math.pi / 2, 0.0, 0.0]  # alpha_{i-1}
-    A     = [0.0, 0.0, 700.0, 500.0]        # a_{i-1} (mm)
-    D     = [500.0, 0.0, 0.0, 0.0]          # d_i (mm)
+    DH parameters and joint limits are loaded from robot_config.yaml.
+    """
 
-    # ── Joint limits [low, high] in radians ────────────────────────────────────
-    JOINT_LIMITS = [
-        (-math.pi,       math.pi),        # J1: base yaw     ±180°
-        (-math.pi / 2,   math.pi / 2),    # J2: shoulder     ±90°
-        (-math.pi / 3,   2*math.pi / 3),  # J3: elbow        -60° to +120°
-        (-math.pi / 2,   math.pi / 2),    # J4: wrist pitch  ±90°
-    ]
+    def __init__(self, config_path: str = None):
+        cfg = _load_config(config_path)
 
-    NUM_JOINTS = 4
+        joints = cfg['joints']
+        self.NUM_JOINTS = cfg['num_dof']
 
-    def __init__(self):
-        # Current joint angles (radians)
-        self._theta = [0.0] * self.NUM_JOINTS
+        # Extract DH parameters and joint limits from config
+        self.ALPHA        = [j['alpha']       for j in joints]
+        self.A            = [j['a']           for j in joints]
+        self.D            = [j['d']           for j in joints]
+        self.THETA_OFFSET = [j['theta_offset'] for j in joints]
+        self.JOINT_LIMITS = [(j['lower_limit'], j['upper_limit']) for j in joints]
 
     # ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -58,9 +58,13 @@ class BaseCustomRobot(object):
         return lo <= theta <= hi
 
     def _fk_transforms(self, joint_angles) -> List[np.ndarray]:
-        """Return list of individual DH transforms for each joint."""
         return [
-            _dh_transform(self.ALPHA[i], self.A[i], self.D[i], joint_angles[i])
+            _dh_transform(
+                self.ALPHA[i],
+                self.A[i],
+                self.D[i],
+                float(joint_angles[i]) + self.THETA_OFFSET[i]
+            )
             for i in range(self.NUM_JOINTS)
         ]
 
@@ -70,10 +74,10 @@ class BaseCustomRobot(object):
         """Compute forward kinematics.
 
         Args:
-            joint_angles: (4,) array of joint angles in radians
+            joint_angles: (N,) array of joint angles in radians
 
         Returns:
-            (4,4) homogeneous transformation matrix of the end-effector (wrist)
+            (4,4) homogeneous transformation matrix of the end-effector
 
         Raises:
             ValueError: if any joint angle is outside its limit
@@ -98,23 +102,23 @@ class BaseCustomRobot(object):
         """Compute inverse kinematics analytically.
 
         Closed-form solution derived from Modified DH FK:
-          theta_1  — rotation column 2:  R[:,2] = [-sin(t1), cos(t1), 0]
+          theta_1  — rotation column 2: R[:,2] = [-sin(t1), cos(t1), 0]
           theta_2,3 — 2-link planar IK in the vertical plane at angle theta_1
-          theta_4  — rotation row 2:     R[2,:] = [-sin(t234), -cos(t234), 0]
+          theta_4  — rotation row 2:    R[2,:] = [-sin(t234), -cos(t234), 0]
 
         Args:
             ee_frame: (4,4) target end-effector transformation matrix
-            prev_joint_angles: (4,) previous joint angles for solution selection
+            prev_joint_angles: (N,) previous joint angles for solution selection
 
         Returns:
-            (success, joint_angles): True/False and (4,) array (zeros on failure)
+            (success, joint_angles): True/False and (N,) array (zeros on failure)
         """
         px, py, pz = ee_frame[0, 3], ee_frame[1, 3], ee_frame[2, 3]
         R = ee_frame[:3, :3]
 
-        L1 = self.A[2]   # 700 mm — upper arm
-        L2 = self.A[3]   # 500 mm — forearm
-        D1 = self.D[0]   # 500 mm — base height
+        L1 = self.A[2]   # upper arm length
+        L2 = self.A[3]   # forearm length
+        D1 = self.D[0]   # base height
 
         # ── Step 1: theta_1 from R[:,2] = [-sin(t1), cos(t1), 0] ──────────────
         s1, c1 = -R[0, 2], R[1, 2]
@@ -124,7 +128,6 @@ class BaseCustomRobot(object):
         else:
             theta1_base = math.atan2(s1, c1)
 
-        # Consider flipped base (arm pointing backward)
         alt = theta1_base + math.pi
         if alt > math.pi:
             alt -= 2.0 * math.pi
@@ -137,16 +140,15 @@ class BaseCustomRobot(object):
             if not self._in_limit(0, t1):
                 continue
 
-            r = px * math.cos(t1) + py * math.sin(t1)  # signed horizontal reach
-            h = D1 - pz                                  # L1*sin(t2)+L2*sin(t2+t3)
+            r = px * math.cos(t1) + py * math.sin(t1)
+            h = D1 - pz
 
-            # Law of cosines for theta_3
             cos_t3 = (r**2 + h**2 - L1**2 - L2**2) / (2.0 * L1 * L2)
             if abs(cos_t3) > 1.0 + 1e-9:
                 continue
             cos_t3 = float(np.clip(cos_t3, -1.0, 1.0))
 
-            for sign in [1, -1]:   # elbow-up and elbow-down
+            for sign in [1, -1]:
                 t3 = sign * math.acos(cos_t3)
                 if not self._in_limit(2, t3):
                     continue
@@ -157,7 +159,6 @@ class BaseCustomRobot(object):
                 if not self._in_limit(1, t2):
                     continue
 
-                # theta_4 from R[2,:] = [-sin(t234), -cos(t234), 0]
                 t234 = math.atan2(-R[2, 0], -R[2, 1])
                 t4 = (t234 - t2 - t3 + math.pi) % (2.0 * math.pi) - math.pi
                 if not self._in_limit(3, t4):
@@ -168,10 +169,8 @@ class BaseCustomRobot(object):
         if not solutions:
             return False, np.zeros(self.NUM_JOINTS)
 
-        # Select solution closest to previous joint angles
         best = min(solutions, key=lambda s: np.linalg.norm(s - prev_joint_angles))
 
-        # FK verification (1 mm tolerance)
         try:
             T_check = self.calculate_fk(best)
         except ValueError:
