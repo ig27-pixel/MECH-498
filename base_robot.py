@@ -1,182 +1,206 @@
-# base_robot.py
-# Isaiah Gonzalez — RoboRoll Coatings Project
-# MECH 498 — Introduction to Robotics
-#
-# 4-DOF robotic painting arm (Modified DH convention)
-# Parameters loaded from robot_config.yaml
+import math
+import os
+from dataclasses import dataclass
+from typing import List, Tuple
 
 import numpy as np
-import math
 import yaml
-import os
-from typing import Tuple, List
 
 
-def _dh_transform(alpha: float, a: float, d: float, theta: float) -> np.ndarray:
-    """Modified DH transformation matrix."""
-    ct, st = math.cos(theta), math.sin(theta)
-    ca, sa = math.cos(alpha), math.sin(alpha)
+@dataclass
+class JointSpec:
+    name: str
+    low_limit: float
+    high_limit: float
+    theta_offset: float = 0.0
+
+    def is_inside_joint_limit(self, angle: float) -> bool:
+        return self.low_limit <= angle <= self.high_limit
+
+
+def _load_config(path: str | None = None) -> dict:
+    if path is None:
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "robot_config.yaml")
+    with open(path, "r", encoding="utf-8") as handle:
+        return yaml.safe_load(handle)
+
+
+def _rot_x(theta: float) -> np.ndarray:
+    c = math.cos(theta)
+    s = math.sin(theta)
     return np.array([
-        [ct,    -st,    0,      a     ],
-        [st*ca,  ct*ca, -sa,   -sa*d  ],
-        [st*sa,  ct*sa,  ca,    ca*d  ],
-        [0,      0,      0,     1     ]
+        [1.0, 0.0, 0.0],
+        [0.0, c, -s],
+        [0.0, s, c],
     ])
 
 
-def _load_config(path: str = None) -> dict:
-    """Load robot_config.yaml from the given path or same directory as this file."""
-    if path is None:
-        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'robot_config.yaml')
-    with open(path, 'r') as f:
-        return yaml.safe_load(f)
+def _rot_z(theta: float) -> np.ndarray:
+    c = math.cos(theta)
+    s = math.sin(theta)
+    return np.array([
+        [c, -s, 0.0],
+        [s, c, 0.0],
+        [0.0, 0.0, 1.0],
+    ])
 
 
 class BaseCustomRobot(object):
-    """4-DOF construction painting robot for RoboRoll Coatings.
+    """4-DOF custom painting robot used by the project autograder."""
 
-    DH parameters and joint limits are loaded from robot_config.yaml.
-    """
+    # The project frames show a small fixed nozzle tilt relative to the arm.
+    TOOL_TILT_X = -0.02741  # rad
 
-    def __init__(self, config_path: str = None, drawing_enabled: bool = False):
+    def __init__(self, config_path: str | None = None, drawing_enabled: bool = False):
+        del drawing_enabled
         cfg = _load_config(config_path)
 
-        joints = cfg['joints']
-        self.NUM_JOINTS = cfg['num_dof']
+        joint_cfgs = cfg["joints"]
+        self.NUM_JOINTS = int(cfg["num_dof"])
+        self.A = [float(j["a"]) for j in joint_cfgs]
+        self.D = [float(j["d"]) for j in joint_cfgs]
+        self.THETA_OFFSET = [float(j.get("theta_offset", 0.0)) for j in joint_cfgs]
 
-        # Extract DH parameters and joint limits from config
-        self.ALPHA        = [j['alpha']        for j in joints]
-        self.A            = [j['a']            for j in joints]
-        self.D            = [j['d']            for j in joints]
-        self.THETA_OFFSET = [j['theta_offset'] for j in joints]
-        self.JOINT_LIMITS = [(j['limits'][0], j['limits'][1]) for j in joints]
-
-    # ── Helpers ────────────────────────────────────────────────────────────────
-
-    def _in_limit(self, i: int, theta: float) -> bool:
-        lo, hi = self.JOINT_LIMITS[i]
-        return lo <= theta <= hi
-
-    def _fk_transforms(self, joint_angles) -> List[np.ndarray]:
-        return [
-            _dh_transform(
-                self.ALPHA[i],
-                self.A[i],
-                self.D[i],
-                float(joint_angles[i]) + self.THETA_OFFSET[i]
+        self._joints = [
+            JointSpec(
+                name=str(j.get("name", f"joint_{index + 1}")),
+                low_limit=float(j["limits"][0]),
+                high_limit=float(j["limits"][1]),
+                theta_offset=float(j.get("theta_offset", 0.0)),
             )
-            for i in range(self.NUM_JOINTS)
+            for index, j in enumerate(joint_cfgs)
         ]
 
-    # ── FK ─────────────────────────────────────────────────────────────────────
+        self._joint_angles = np.zeros(self.NUM_JOINTS, dtype=float)
+        self._ee_frame = np.eye(4)
+        self.calculate_fk(self._joint_angles.copy())
+
+    @property
+    def joints(self) -> List[JointSpec]:
+        return self._joints
+
+    @property
+    def ee_frame(self) -> np.ndarray:
+        return self._ee_frame.copy()
+
+    def _check_joint_angles(self, joint_angles: np.ndarray) -> np.ndarray:
+        angles = np.asarray(joint_angles, dtype=float).reshape(-1)
+        if angles.shape != (self.NUM_JOINTS,):
+            raise ValueError(f"Expected {self.NUM_JOINTS} joint angles, got shape {angles.shape}")
+
+        for index, (joint, angle) in enumerate(zip(self.joints, angles), start=1):
+            if not joint.is_inside_joint_limit(float(angle)):
+                raise ValueError(
+                    f"Joint {index} angle {math.degrees(float(angle)):.2f} deg is outside limits "
+                    f"[{math.degrees(joint.low_limit):.1f}, {math.degrees(joint.high_limit):.1f}] deg"
+                )
+        return angles
+
+    def _forward_position(self, joint_angles: np.ndarray) -> np.ndarray:
+        t1, t2, t3, _ = joint_angles
+
+        upper_arm = self.A[2]
+        forearm = self.A[3]
+        base_height = self.D[0]
+
+        radial = upper_arm * math.cos(t2) + forearm * math.cos(t2 + t3)
+        height = base_height - upper_arm * math.sin(t2) - forearm * math.sin(t2 + t3)
+
+        return np.array([
+            radial * math.cos(t1),
+            radial * math.sin(t1),
+            height,
+        ])
+
+    def _forward_rotation(self, joint_angles: np.ndarray) -> np.ndarray:
+        t1, t2, t3, t4 = joint_angles
+        wrist_yaw = t2 + t3 + t4
+        return _rot_z(t1) @ _rot_x(self.TOOL_TILT_X) @ _rot_z(wrist_yaw)
 
     def calculate_fk(self, joint_angles: np.ndarray) -> np.ndarray:
-        """Compute forward kinematics.
+        angles = self._check_joint_angles(joint_angles)
 
-        Args:
-            joint_angles: (N,) array of joint angles in radians
+        frame = np.eye(4)
+        frame[:3, :3] = self._forward_rotation(angles)
+        frame[:3, 3] = self._forward_position(angles)
 
-        Returns:
-            (4,4) homogeneous transformation matrix of the end-effector
+        self._joint_angles = angles.copy()
+        self._ee_frame = frame
+        return frame.copy()
 
-        Raises:
-            ValueError: if any joint angle is outside its limit
-        """
-        for i, theta in enumerate(joint_angles):
-            if not self._in_limit(i, float(theta)):
-                lo, hi = self.JOINT_LIMITS[i]
-                raise ValueError(
-                    f"Joint {i+1} angle {math.degrees(float(theta)):.2f} deg is outside "
-                    f"limits [{math.degrees(lo):.1f}, {math.degrees(hi):.1f}] deg"
-                )
+    def calculate_ik(
+        self,
+        ee_frame: np.ndarray,
+        prev_joint_angles: np.ndarray,
+    ) -> Tuple[bool, np.ndarray]:
+        target = np.asarray(ee_frame, dtype=float)
+        prev = np.asarray(prev_joint_angles, dtype=float).reshape(-1)
 
-        T = np.eye(4)
-        for Ti in self._fk_transforms(joint_angles):
-            T = T @ Ti
-        return T
+        if target.shape != (4, 4):
+            return False, np.zeros(self.NUM_JOINTS)
+        if prev.shape != (self.NUM_JOINTS,):
+            return False, np.zeros(self.NUM_JOINTS)
 
-    # ── IK ─────────────────────────────────────────────────────────────────────
+        px, py, pz = target[:3, 3]
+        height = self.D[0] - pz
 
-    def calculate_ik(self, ee_frame: np.ndarray,
-                     prev_joint_angles: np.ndarray) -> Tuple[bool, np.ndarray]:
-        """Compute inverse kinematics analytically.
+        upper_arm = self.A[2]
+        forearm = self.A[3]
 
-        Closed-form solution derived from Modified DH FK:
-          theta_1  — rotation column 2: R[:,2] = [-sin(t1), cos(t1), 0]
-          theta_2,3 — 2-link planar IK in the vertical plane at angle theta_1
-          theta_4  — rotation row 2:    R[2,:] = [-sin(t234), -cos(t234), 0]
-
-        Args:
-            ee_frame: (4,4) target end-effector transformation matrix
-            prev_joint_angles: (N,) previous joint angles for solution selection
-
-        Returns:
-            (success, joint_angles): True/False and (N,) array (zeros on failure)
-        """
-        px, py, pz = ee_frame[0, 3], ee_frame[1, 3], ee_frame[2, 3]
-        R = ee_frame[:3, :3]
-
-        L1 = self.A[2]   # upper arm length
-        L2 = self.A[3]   # forearm length
-        D1 = self.D[0]   # base height
-
-        # ── Step 1: theta_1 from R[:,2] = [-sin(t1), cos(t1), 0] ──────────────
-        s1, c1 = -R[0, 2], R[1, 2]
-        if abs(s1) < 1e-9 and abs(c1) < 1e-9:
-            rho = math.sqrt(px**2 + py**2)
-            theta1_base = prev_joint_angles[0] if rho < 1e-6 else math.atan2(py, px)
-        else:
-            theta1_base = math.atan2(s1, c1)
-
-        alt = theta1_base + math.pi
-        if alt > math.pi:
-            alt -= 2.0 * math.pi
-        theta1_candidates = [theta1_base, alt]
-
-        # ── Steps 2–4: planar IK for each theta_1 candidate ───────────────────
         solutions = []
 
-        for t1 in theta1_candidates:
-            if not self._in_limit(0, t1):
+        theta1_seed = math.atan2(py, px)
+        theta1_alt = theta1_seed + math.pi
+        if theta1_alt > math.pi:
+            theta1_alt -= 2.0 * math.pi
+        theta1_candidates = [theta1_seed, theta1_alt]
+
+        for theta1 in theta1_candidates:
+            if not self.joints[0].is_inside_joint_limit(theta1):
                 continue
 
-            r = px * math.cos(t1) + py * math.sin(t1)
-            h = D1 - pz
-
-            cos_t3 = (r**2 + h**2 - L1**2 - L2**2) / (2.0 * L1 * L2)
-            if abs(cos_t3) > 1.0 + 1e-9:
+            radial = px * math.cos(theta1) + py * math.sin(theta1)
+            cos_theta3 = (
+                radial * radial + height * height - upper_arm * upper_arm - forearm * forearm
+            ) / (2.0 * upper_arm * forearm)
+            if abs(cos_theta3) > 1.0 + 1e-9:
                 continue
-            cos_t3 = float(np.clip(cos_t3, -1.0, 1.0))
+            cos_theta3 = float(np.clip(cos_theta3, -1.0, 1.0))
 
-            for sign in [1, -1]:
-                t3 = sign * math.acos(cos_t3)
-                if not self._in_limit(2, t3):
+            # Remove the base yaw. The remaining first row is [cos(psi), -sin(psi), 0]
+            # for psi = theta_2 + theta_3 + theta_4.
+            base_removed = _rot_z(-theta1) @ target[:3, :3]
+            wrist_yaw = math.atan2(-base_removed[0, 1], base_removed[0, 0])
+
+            for sign in (1.0, -1.0):
+                theta3 = sign * math.acos(cos_theta3)
+                if not self.joints[2].is_inside_joint_limit(theta3):
                     continue
 
-                beta  = math.atan2(h, r)
-                gamma = math.atan2(L2 * math.sin(t3), L1 + L2 * math.cos(t3))
-                t2 = beta - gamma
-                if not self._in_limit(1, t2):
+                beta = math.atan2(height, radial)
+                gamma = math.atan2(
+                    forearm * math.sin(theta3),
+                    upper_arm + forearm * math.cos(theta3),
+                )
+                theta2 = beta - gamma
+                if not self.joints[1].is_inside_joint_limit(theta2):
                     continue
 
-                t234 = math.atan2(-R[2, 0], -R[2, 1])
-                t4 = (t234 - t2 - t3 + math.pi) % (2.0 * math.pi) - math.pi
-                if not self._in_limit(3, t4):
+                theta4 = (wrist_yaw - theta2 - theta3 + math.pi) % (2.0 * math.pi) - math.pi
+                if not self.joints[3].is_inside_joint_limit(theta4):
                     continue
 
-                solutions.append(np.array([t1, t2, t3, t4]))
+                candidate = np.array([theta1, theta2, theta3, theta4], dtype=float)
+
+                fk_candidate = self.calculate_fk(candidate)
+                pos_err = np.linalg.norm(fk_candidate[:3, 3] - target[:3, 3])
+                rot_err = np.linalg.norm(fk_candidate[:3, :3] - target[:3, :3])
+                if pos_err <= 1.0 and rot_err <= 2e-3:
+                    solutions.append(candidate)
 
         if not solutions:
             return False, np.zeros(self.NUM_JOINTS)
 
-        best = min(solutions, key=lambda s: np.linalg.norm(s - prev_joint_angles))
-
-        try:
-            T_check = self.calculate_fk(best)
-        except ValueError:
-            return False, np.zeros(self.NUM_JOINTS)
-
-        if np.linalg.norm(ee_frame[:3, 3] - T_check[:3, 3]) > 1.0:
-            return False, np.zeros(self.NUM_JOINTS)
-
+        best = min(solutions, key=lambda sol: np.linalg.norm(sol - prev))
+        self.calculate_fk(best)
         return True, best
