@@ -49,7 +49,7 @@ class BaseCustomRobot(object):
         self.A            = [j['a']           for j in joints]
         self.D            = [j['d']           for j in joints]
         self.THETA_OFFSET = [j['theta_offset'] for j in joints]
-        self.JOINT_LIMITS = [(j['lower_limit'], j['upper_limit']) for j in joints]
+        self.JOINT_LIMITS = [(j['limits'][0], j['limits'][1]) for j in joints]
 
     # ── Helpers ────────────────────────────────────────────────────────────────
 

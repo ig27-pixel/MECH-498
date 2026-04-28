@@ -16,29 +16,25 @@ joints:
     a: 0.0
     d: 500.0
     theta_offset: 0.0
-    lower_limit: -3.141592653589793
-    upper_limit:  3.141592653589793
+    limits: [-3.141592653589793, 3.141592653589793]
 
   - name: shoulder_pitch
     alpha: -1.5707963267948966
     a: 0.0
     d: 0.0
     theta_offset: 0.0
-    lower_limit: -1.5707963267948966
-    upper_limit:  1.5707963267948966
+    limits: [-1.5707963267948966, 1.5707963267948966]
 
   - name: elbow_pitch
     alpha: 0.0
     a: 700.0
     d: 0.0
     theta_offset: 0.0
-    lower_limit: -1.0471975511965976
-    upper_limit:  2.0943951023931953
+    limits: [-1.0471975511965976, 2.0943951023931953]
 
   - name: wrist_pitch
     alpha: 0.0
     a: 500.0
     d: 0.0
     theta_offset: 0.0
-    lower_limit: -1.5707963267948966
-    upper_limit:  1.5707963267948966
+    limits: [-1.5707963267948966, 1.5707963267948966]
