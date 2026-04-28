@@ -22,10 +22,11 @@ python Project/project_demo.py
 This opens a matplotlib window and runs a Lab-3-style painting demonstration:
 
 - a brush tool is attached to the end effector
-- the RoboRoll arm follows a smooth IK-generated path
+- the RoboRoll arm paints a compact smiley on a reachable wall plane
+- all brushes can remain visible while only the selected brush paints
 - colored paint points are left behind in 3D space as the robot moves
 
-The effect is intentionally similar to the `picasso.py` style demonstration in `Lab-3`, but adapted to the 4-DOF RoboRoll project robot.
+The effect is intentionally similar to the `picasso.py` style demonstration in `Lab-3`, but adapted to the 4-DOF RoboRoll project robot and its more limited reachable wall geometry.
 
 You can speed the demo up by adjusting the constructor settings inside
 `project_demo.py`:

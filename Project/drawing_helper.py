@@ -105,6 +105,7 @@ class FrameDrawing(object):
         [self._y_pos, self._y_pos + self._x_vect[1]],
         [self._z_pos, self._z_pos + self._x_vect[2]],
         color="r" if self.color is None else self.color,
+        linewidth=2.0,
     )
 
     # Draw Y Axis
@@ -113,6 +114,7 @@ class FrameDrawing(object):
         [self._y_pos, self._y_pos + self._y_vect[1]],
         [self._z_pos, self._z_pos + self._y_vect[2]],
         color="g" if self.color is None else self.color,
+        linewidth=2.0,
     )
 
     # Draw Z Axis
@@ -121,6 +123,7 @@ class FrameDrawing(object):
         [self._y_pos, self._y_pos + self._z_vect[1]],
         [self._z_pos, self._z_pos + self._z_vect[2]],
         color="b" if self.color is None else self.color,
+        linewidth=2.0,
     )
 
   def _update_artist(self, artist, x_pos: float, y_pos: float, z_pos: float,
@@ -190,7 +193,8 @@ class LinkDrawing(object):
          self._frame_2[1,3]],
         [self._frame_1[2,3],
          self._frame_2[2,3]],
-        color='b' if self._color is None else self._color)
+        color='b' if self._color is None else self._color,
+        linewidth=3.2)
 
   def _update_drawing(self):
     """Update the artist with the internal data"""

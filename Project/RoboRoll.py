@@ -80,10 +80,11 @@ class RoboRoll(object):
             self.fig = None
             self.ax = None
 
-        self._joint_1 = Joint(self.ax, self.colors[0], self._drawing_enabled)
-        self._joint_2 = Joint(self.ax, self.colors[1], self._drawing_enabled)
-        self._joint_3 = Joint(self.ax, self.colors[2], self._drawing_enabled)
-        self._joint_4 = Joint(self.ax, self.colors[3], self._drawing_enabled)
+        frame_size = 65.0
+        self._joint_1 = Joint(self.ax, self.colors[0], self._drawing_enabled, frame_size=frame_size)
+        self._joint_2 = Joint(self.ax, self.colors[1], self._drawing_enabled, frame_size=frame_size)
+        self._joint_3 = Joint(self.ax, self.colors[2], self._drawing_enabled, frame_size=frame_size)
+        self._joint_4 = Joint(self.ax, self.colors[3], self._drawing_enabled, frame_size=frame_size)
 
         self._joint_1.set_joint_limits(*self.J1_LIMITS)
         self._joint_2.set_joint_limits(*self.J2_LIMITS)

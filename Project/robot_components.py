@@ -224,7 +224,7 @@ class Brush(object):
                     [self.selected_brush_frame[2, 3]],
                     ".b",
                     color=self.selected_color,
-                    markersize=10)
+                    markersize=14)
 
 
 class Link(object):
