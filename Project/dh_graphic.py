@@ -93,7 +93,7 @@ ax.text(ox1+L+6, oz1,     r"$x_1$", fontsize=10, color=C_X, va="center")
 ax.text(ox1+4,   oz1+L+6, r"$z_1$", fontsize=10, color=C_Z)
 ax.text(ox1+10,  oz1-32,  r"$\{1\}$", fontsize=11, fontweight="bold", ha="center")
 
-# ── Frame {2} — co-located with {1}, z₂ = out of page ────────────────────────
+# ── Frame {2} — at (0, 500) after tz(d₁) and Rx(α₁); z₂ = out of page ───────
 ox2, oz2 = 30, 565
 arrow(ax, ox2, oz2, L, 0, C_X)
 z_dot(ax, ox2+12, oz2+56)
@@ -188,8 +188,8 @@ ax_t.set_title("Modified DH Parameter Table",
 
 headers = [r"$i$", r"$\alpha_{i-1}$", r"$a_{i-1}$", r"$d_i$", r"$\theta_i$"]
 rows = [
-    ["1", r"$0°$",   "0 mm",   "0 mm",   r"$\theta_1$"],
-    ["2", r"$-90°$", "0 mm",   "500 mm", r"$\theta_2$"],
+    ["1", r"$0°$",   "0 mm",   "500 mm", r"$\theta_1$"],
+    ["2", r"$-90°$", "0 mm",   "0 mm",   r"$\theta_2$"],
     ["3", r"$0°$",   "700 mm", "0 mm",   r"$\theta_3$"],
     ["4", r"$0°$",   "500 mm", "0 mm",   r"$\theta_4$"],
 ]
