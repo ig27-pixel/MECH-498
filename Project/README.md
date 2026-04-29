@@ -4,14 +4,22 @@ Final RoboRoll Coatings project workspace for a custom 4-DOF painting robot.
 
 ## Files
 
-- `RoboRoll.py`: interactive project robot class with FK, IK, joint limits,
-  nozzle frame support, and matplotlib visualization.
-- `project_demo.py`: Part 3 room/painting demonstration using the RoboRoll
-  visual model.
+- `RoboRoll.py`: project robot class with FK, IK, joint limits, nozzle frame
+  support, and matplotlib visualization.
+- `project_demo.py`: Section 3 two-wall painting demonstration — Wall 1 (X = 900 mm)
+  with five horizontal colour stripes, Wall 2 (Y = 900 mm) with a smiley face
+  (outline, eyes, smile arc).
+- `RoboRoll_dynamics.py`: Section 4 dynamics simulation — passive motion (energy
+  conservation) and PD + gravity-feedforward controlled motion; saves
+  `dynamics_passive.png` and `dynamics_controlled.png`.
 - `robot_components.py`: reusable joint, link, brush, and drawing primitives.
 - `drawing_helper.py`: 3D plotting helpers.
 - `general_utility.py`: validation and transform helpers.
-- `dh_graphic.py`, `dh_parameters.png`: DH-parameter illustration support.
+- `dh_graphic.py`: generates `dh_parameters.png` — Modified DH parameter diagram
+  and table.
+- `dh_parameters.png`: saved DH-parameter illustration (Section 1).
+- `dynamics_passive.png`: saved energy-conservation plot (Section 4).
+- `dynamics_controlled.png`: saved PD-controlled trajectory plot (Section 4).
 - `project intro 2026.pdf`: original project handout.
 
 ## Related Root Files
@@ -23,29 +31,35 @@ Final RoboRoll Coatings project workspace for a custom 4-DOF painting robot.
 
 ## Run
 
-From the repository root:
+From the Project folder:
 
 ```bash
-python Project/project_demo.py
+# Section 3 — two-wall painting animation
+python project_demo.py
+
+# Section 4 — dynamics plots (saves PNGs automatically)
+python RoboRoll_dynamics.py
+
+# Section 1 — regenerate DH parameter diagram
+python dh_graphic.py
 ```
 
-The demo opens a matplotlib window, starts the robot from home, shows a 2000 mm
-room box, and paints a compact multi-color path with the brush/nozzle attached
-to the end effector.
+The demo opens a matplotlib window, places the robot at home, renders a 2000 mm
+room box, and paints Wall 1 with five colour stripes followed by a smiley face
+on Wall 2.
 
 ## Demo Tuning
 
-The main demo settings are in the `RoboRollRoomDemo` constructor call near the
-bottom of `project_demo.py`:
+Constructor parameters in `RoboRollRoomDemo` (bottom of `project_demo.py`):
 
-- `frame_delay`: pause between rendered frames.
-- `paint_stride`: paint every Nth rendered frame.
-- `samples_per_segment`: interpolation density between waypoints.
-- `show_all_brushes`: show all brush tools while only the selected brush paints.
+- `frame_delay`: pause in seconds between rendered frames (default `0.005`).
+- `samples_per_segment`: smoothstep interpolation density between IK waypoints
+  (default `7`).
 
 ## Notes
 
-- `RoboRoll.py` is the visual/development model.
-- `base_robot.py` is the compact submission model that mirrors the tested
-  kinematic structure.
-- Joint angles are in radians and distances are in millimeters.
+- Joint angles are in radians; distances are in millimeters.
+- `RoboRoll.py` is the visual/development model; `../base_robot.py` is the
+  compact submission model that mirrors the same kinematic structure.
+- The smiley face uses face-circle arc transits between features so the robot
+  never cuts a diagonal line across the face panel.
