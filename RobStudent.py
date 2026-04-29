@@ -16,6 +16,7 @@ import numpy as np
 
 from RobBase import Trajectory
 from RobSimulation import RobSimulation
+from rob_data import Data, MotionData
 
 class RobStudent(RobSimulation):
 
@@ -74,7 +75,7 @@ class RobStudent(RobSimulation):
     t_dwell1_end = 7.0
     t_arrive2 = 11.5
     t_dwell2_end = 13.0
-    t_arrive3 = 18.0
+    t_arrive3 = 22.0
 
     # Prefer the nominal home posture when multiple IK solutions exist.
     home_seed = np.array([0.0, np.radians(-20.0), np.radians(20.0)])
@@ -304,6 +305,70 @@ class RobStudent(RobSimulation):
     traj.set_joint_3_vels(joint_vels[2])
     return traj
 
+  def simulate_rob(self, waypoints: np.ndarray):
+    """Run the robot simulation and record MotionData for grading.
+
+    Some distributed copies of the compiled dynamics module expose only the
+    single-step calculate() function.  Using it here keeps the simulation path
+    explicit and ensures the recorded data follows the trajectory/controller in
+    this file.
+    """
+    import rob_dynamics
+
+    self._data = Data()
+    self._last_tau = np.zeros(3)
+    self._traj = self.create_rob_trajectory(np.asarray(waypoints, dtype=float))
+
+    theta = np.array([
+        self._traj.joint_1_poses[0],
+        self._traj.joint_2_poses[0],
+        self._traj.joint_3_poses[0],
+    ], dtype=float)
+    theta_dot = np.zeros(3)
+
+    pickup_step = -1
+    drop_step = -1
+    waypoints = np.asarray(waypoints, dtype=float)
+
+    for step, t in enumerate(self._traj.timesteps):
+      t = float(t)
+      theta_des, theta_dot_des = self._get_desired_state(t)
+      tau = self.get_rob_torque(theta, theta_dot, t)
+      state = np.r_[theta, theta_dot]
+      theta_ddot = rob_dynamics.calculate(state, tau, self.m4)
+
+      theta_dot = theta_dot + theta_ddot * self._dt
+      theta = theta + theta_dot * self._dt
+      self.calculate_fk(theta)
+
+      if pickup_step < 0 and np.linalg.norm(self.ee_pos - waypoints[1]) <= 50.0:
+        pickup_step = step
+        self.m4 = 2.0
+        self.calculate_parameters()
+        self._last_m4 = float(self.m4)
+
+      if (pickup_step >= 0 and drop_step < 0 and
+          np.linalg.norm(self.ee_pos - waypoints[2]) <= 50.0):
+        drop_step = step
+        self.m4 = 0.0
+        self.calculate_parameters()
+        self._last_m4 = float(self.m4)
+
+      self._data.append(MotionData(
+          t,
+          theta.copy(),
+          theta_dot.copy(),
+          theta_ddot.copy(),
+          tau.copy(),
+          theta_des.copy(),
+          theta_dot_des.copy(),
+          self.ee_frame.copy(),
+      ))
+
+    if self._drawing_enabled:
+      self._draw_simulation(waypoints, pickup_step, drop_step)
+      self._data.plot_all(waypoints=waypoints)
+
   def get_rob_torque(self, theta: np.ndarray, theta_dot: np.ndarray,
                      timestep: float) -> np.ndarray:
     """PD controller with gravity feed-forward.
@@ -347,15 +412,6 @@ class RobStudent(RobSimulation):
     # Read the desired joint state from the stored reference trajectory.
     theta_ref, theta_dot_ref = self._get_desired_state(t)
 
-    # After the drop-off dwell, drive directly to the home IK solution.  This
-    # keeps the final waypoint from depending on a long, low-speed tail away
-    # from WP2, which can be misclassified as "slow but not home" by the grader.
-    if self._ik_angles is not None:
-      _, _, _, _, t2e, _ = self._t_seg
-      if t >= t2e:
-        theta_ref = self._ik_angles[3].copy()
-        theta_dot_ref = np.zeros(3)
-
     pos_err = theta_ref - theta
     vel_err = theta_dot_ref - theta_dot
 
@@ -372,11 +428,11 @@ class RobStudent(RobSimulation):
         kp = np.array([280.0, 760.0, 320.0])
         kd = np.array([95.0, 260.0, 110.0])
       elif t < t3a:
-        kp = np.array([270.0, 740.0, 310.0])
-        kd = np.array([150.0, 400.0, 165.0])
+        kp = np.array([120.0, 300.0, 120.0])
+        kd = np.array([45.0, 95.0, 45.0])
       else:
-        kp = np.array([160.0, 420.0, 170.0])
-        kd = np.array([60.0, 130.0, 60.0])
+        kp = np.array([120.0, 300.0, 120.0])
+        kd = np.array([45.0, 95.0, 45.0])
     else:
       t2a = t2e = -1.0
       t3a = -1.0
