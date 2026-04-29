@@ -97,11 +97,17 @@ Suggested line: "The following slides provide the fuller technical, market, and 
 
 ### A1. Beachhead Market
 
-Tell the story: Start where the robot is easiest to justify.
+Tell the story: Start with the narrow customer where repeatability and schedule pressure are strongest.
 
-Segments:
+Primary beachhead:
 
-- Apartment turns and multifamily renovations.
+- Multifamily apartment turns and property teams.
+- Similar units create repeatable room layouts.
+- Repainting often happens under tight move-in / move-out schedules.
+- Labor availability affects turnover speed.
+
+Expansion markets:
+
 - Commercial tenant improvements.
 - New-build interior finishing crews.
 
@@ -211,4 +217,3 @@ If you record, keep it under 15 minutes at normal speed. A strong pacing target:
 - Closing: 30 seconds.
 
 Do not spend much time explaining equations. Say what the technical work proves: the robot can reach wall targets, follow planned paths, and move under physically reasoned control.
-
