@@ -7,7 +7,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
 
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "Lab-2"))
+PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.join(PROJECT_DIR, "shared"))
 import general_utility as general
 from robot_components import Joint, Link
 

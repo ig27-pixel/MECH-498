@@ -44,7 +44,7 @@
       color: white;
       background:
         linear-gradient(90deg, rgba(10, 18, 32, 0.9), rgba(10, 18, 32, 0.32)),
-        url("mockup_robot_hero.png") center / cover no-repeat;
+        url("images/mockup_robot_hero.png") center / cover no-repeat;
     }
     .slide.dark {
       grid-template-columns: 1fr;
@@ -171,6 +171,49 @@
       .grid3, .grid4, .two-col { grid-template-columns: 1fr; }
       .media { min-height: 280px; }
     }
+    @media print {
+      @page {
+        size: 13.333in 7.5in;
+        margin: 0;
+      }
+      body {
+        background: white;
+      }
+      .deck {
+        height: auto;
+        overflow: visible;
+        scroll-snap-type: none;
+      }
+      .slide {
+        width: 13.333in;
+        height: 7.5in;
+        min-height: 7.5in;
+        page-break-after: always;
+        break-after: page;
+        scroll-snap-align: none;
+        padding: 0.45in 0.58in;
+      }
+      .slide:last-child {
+        page-break-after: auto;
+        break-after: auto;
+      }
+      .notes {
+        display: none;
+      }
+      h1 { font-size: 50pt; }
+      h2 { font-size: 34pt; }
+      p { font-size: 16pt; }
+      li { font-size: 18pt; }
+      .media {
+        min-height: 3.6in;
+      }
+      .media img {
+        max-height: 5.9in;
+      }
+      .split-images img {
+        max-height: 2.75in;
+      }
+    }
   </style>
 </head>
 <body>
@@ -194,7 +237,7 @@
         </ul>
       </div>
       <div class="media">
-        <img src="mockup_problem_scene.png" alt="Manual wall finishing bottleneck mockup">
+        <img src="images/mockup_problem_scene.png" alt="Manual wall finishing bottleneck mockup">
       </div>
     </section>
 
@@ -209,7 +252,7 @@
         </div>
       </div>
       <div class="media">
-        <img src="mockup_market_segments.png" alt="RoboRoll beachhead market mockup">
+        <img src="images/mockup_market_segments.png" alt="RoboRoll beachhead market mockup">
       </div>
     </section>
 
@@ -224,7 +267,7 @@
         </ul>
       </div>
       <div class="media">
-        <img src="mockup_robot_architecture.png" alt="RoboRoll robot architecture mockup">
+        <img src="images/mockup_robot_architecture.png" alt="RoboRoll robot architecture mockup">
       </div>
     </section>
 
@@ -239,8 +282,8 @@
         </ul>
       </div>
       <div class="media split-images">
-        <img src="mockup_product_lines.png" alt="RoboRoll wall stripe coverage path">
-        <img src="mockup_product_smiley.png" alt="RoboRoll wall smiley detail path">
+        <img src="images/mockup_product_lines.png" alt="RoboRoll wall stripe coverage path">
+        <img src="images/mockup_product_smiley.png" alt="RoboRoll wall smiley detail path">
       </div>
     </section>
 
@@ -255,7 +298,7 @@
         </div>
       </div>
       <div class="media">
-        <img src="mockup_roadmap.png" alt="RoboRoll funding and prototype roadmap">
+        <img src="images/mockup_roadmap.png" alt="RoboRoll funding and prototype roadmap">
       </div>
     </section>
 
@@ -286,7 +329,7 @@
         </div>
       </div>
       <div class="media">
-        <img src="mockup_market_segments.png" alt="RoboRoll beachhead market: multifamily apartment turns">
+        <img src="images/mockup_market_segments.png" alt="RoboRoll beachhead market: multifamily apartment turns">
       </div>
     </section>
 
@@ -302,7 +345,7 @@
         </div>
       </div>
       <div class="media">
-        <img src="mockup_robot_workflow.png" alt="RoboRoll customer workflow mockup">
+        <img src="images/mockup_robot_workflow.png" alt="RoboRoll customer workflow mockup">
       </div>
     </section>
 
@@ -317,7 +360,7 @@
         </ul>
       </div>
       <div class="media">
-        <img src="mockup_nozzle_closeup.png" alt="RoboRoll paint end-effector concept">
+        <img src="images/mockup_nozzle_closeup.png" alt="RoboRoll paint end-effector concept">
       </div>
     </section>
 
@@ -332,7 +375,7 @@
         </ul>
       </div>
       <div class="media">
-        <img src="mockup_calibration.png" alt="RoboRoll wall calibration and work envelope">
+        <img src="images/mockup_calibration.png" alt="RoboRoll wall calibration and work envelope">
       </div>
     </section>
 
@@ -347,7 +390,7 @@
         </ul>
       </div>
       <div class="media">
-        <img src="mockup_path_planning.png" alt="RoboRoll demo path planning mockup">
+        <img src="images/mockup_path_planning.png" alt="RoboRoll demo path planning mockup">
       </div>
     </section>
 
@@ -362,7 +405,7 @@
         </ul>
       </div>
       <div class="media split-images">
-        <img src="mockup_control_dashboard.png" alt="RoboRoll control dashboard mockup">
+        <img src="images/mockup_control_dashboard.png" alt="RoboRoll control dashboard mockup">
       </div>
     </section>
 
@@ -378,7 +421,7 @@
         </div>
       </div>
       <div class="media">
-        <img src="mockup_roadmap.png" alt="RoboRoll development roadmap">
+        <img src="images/mockup_roadmap.png" alt="RoboRoll development roadmap">
       </div>
     </section>
 

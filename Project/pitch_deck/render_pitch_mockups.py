@@ -8,7 +8,8 @@ import numpy as np
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 
-OUT_DIR = Path(__file__).resolve().parent
+OUT_DIR = Path(__file__).resolve().parent / "images"
+OUT_DIR.mkdir(exist_ok=True)
 
 
 def _set_clean_axes(ax, title=None):

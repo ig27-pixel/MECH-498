@@ -3,17 +3,22 @@
 Wall 1 (X = +900 mm): five horizontal colour-sweep stripes.
 Wall 2 (Y = +900 mm): a smiley face (outline, eyes, smile).
 
-Run from the Project folder:
-    python project_demo.py
+Run from the repository root:
+    python Project/section_3_demo/project_demo.py
 """
 
 import math
 import os
+import sys
 import time
 from typing import List, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
+
+PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.join(PROJECT_DIR, "section_1_2_kinematics"))
+sys.path.append(os.path.join(PROJECT_DIR, "shared"))
 
 from RoboRoll import RoboRoll
 from robot_components import Brush

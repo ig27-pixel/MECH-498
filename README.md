@@ -10,7 +10,7 @@ painting-robot project.
 - `Lab-2`: Fanuc forward/inverse kinematics and robot drawing utilities.
 - `Lab-3`: Fanuc IK path following with brush/tool-offset drawing tasks.
 - `Lab-4`: RRBot and RobStudent simulation, dynamics, trajectory, and control work.
-- `Project`: final RoboRoll 4-DOF painting robot and demo.
+- `Project`: final RoboRoll 4-DOF painting robot, organized by project section.
 - `base_robot.py`: compact RoboRoll model for project submission.
 - `robot_config.yaml`: RoboRoll metadata, workspace bounds, DH values, and joint limits.
 
@@ -38,11 +38,11 @@ otherwise. Several scripts open matplotlib windows.
 | `Lab-3` | `python test_script_student.py` |
 | `Lab-4` | `python test_rr_bot.py` |
 | `Lab-4` | `python test_rob.py 1` |
-| repository root | `python Project/project_demo.py` |
+| repository root | `python Project/section_3_demo/project_demo.py` |
 
 ## Notes
 
 - Assignment PDFs are kept beside the corresponding lab/project files.
 - `__pycache__` and `*.Zone.Identifier` files are generated local artifacts.
 - The final project implementation is split between the interactive model in
-  `Project/RoboRoll.py` and the submission model in `base_robot.py`.
+  `Project/section_1_2_kinematics/RoboRoll.py` and the submission model in `base_robot.py`.

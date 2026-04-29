@@ -2,64 +2,51 @@
 
 Final RoboRoll Coatings project workspace for a custom 4-DOF painting robot.
 
-## Files
+## Folder Layout
 
-- `RoboRoll.py`: project robot class with FK, IK, joint limits, nozzle frame
-  support, and matplotlib visualization.
-- `project_demo.py`: Section 3 two-wall painting demonstration — Wall 1 (X = 900 mm)
-  with five horizontal colour stripes, Wall 2 (Y = 900 mm) with a smiley face
-  (outline, eyes, smile arc).
-- `RoboRoll_dynamics.py`: Section 4 dynamics simulation — passive motion (energy
-  conservation) and PD + gravity-feedforward controlled motion; saves
-  `dynamics_passive.png` and `dynamics_controlled.png`.
-- `robot_components.py`: reusable joint, link, brush, and drawing primitives.
-- `drawing_helper.py`: 3D plotting helpers.
-- `general_utility.py`: validation and transform helpers.
-- `dh_graphic.py`: generates `dh_parameters.png` — Modified DH parameter diagram
-  and table.
-- `dh_parameters.png`: saved DH-parameter illustration (Section 1).
-- `dynamics_passive.png`: saved energy-conservation plot (Section 4).
-- `dynamics_controlled.png`: saved PD-controlled trajectory plot (Section 4).
-- `project intro 2026.pdf`: original project handout.
+- `project intro 2026.pdf`: original course project PDF.
+- `section_1_2_kinematics/`: robot model, forward/inverse kinematics, and DH graphic.
+- `section_3_demo/`: two-wall painting trajectory demonstration and demo snapshot.
+- `section_4_dynamics/`: passive and controlled dynamics simulation plus saved plots.
+- `pitch_deck/`: HTML, PDF, PPTX, plan notes, and generated pitch mockup renders.
+- `shared/`: reusable drawing, utility, joint, link, and brush helper code.
 
 ## Related Root Files
 
-- `../base_robot.py`: compact `BaseCustomRobot` implementation for project
-  submission.
-- `../robot_config.yaml`: robot name, workspace bounds, DH-style dimensions,
-  and joint limits used by the submission model.
+- `../base_robot.py`: compact `BaseCustomRobot` implementation for project submission.
+- `../robot_config.yaml`: robot name, workspace bounds, DH-style dimensions, and joint limits used by the submission model.
 
 ## Run
 
-From the Project folder:
+From the repository root (`MECH-498`):
 
 ```bash
-# Section 3 — two-wall painting animation
-python project_demo.py
+# Section 1/2 - regenerate DH parameter diagram
+python Project/section_1_2_kinematics/dh_graphic.py
 
-# Section 4 — dynamics plots (saves PNGs automatically)
-python RoboRoll_dynamics.py
+# Section 3 - two-wall painting animation
+python Project/section_3_demo/project_demo.py
 
-# Section 1 — regenerate DH parameter diagram
-python dh_graphic.py
+# Section 4 - dynamics plots
+python Project/section_4_dynamics/RoboRoll_dynamics.py
+
+# Pitch deck - regenerate mockup images
+python Project/pitch_deck/render_pitch_mockups.py
+
+# Pitch deck - regenerate PowerPoint
+python Project/pitch_deck/export_pitch_deck.py
 ```
 
-The demo opens a matplotlib window, places the robot at home, renders a 2000 mm
-room box, and paints Wall 1 with five colour stripes followed by a smiley face
-on Wall 2.
+## Pitch Deck Files
 
-## Demo Tuning
-
-Constructor parameters in `RoboRollRoomDemo` (bottom of `project_demo.py`):
-
-- `frame_delay`: pause in seconds between rendered frames (default `0.005`).
-- `samples_per_segment`: smoothstep interpolation density between IK waypoints
-  (default `7`).
+- `pitch_deck/roboroll_pitch_deck.html`: browser-presentable deck.
+- `pitch_deck/roboroll_pitch_deck.pdf`: PDF export.
+- `pitch_deck/roboroll_pitch_deck.pptx`: PowerPoint export.
+- `pitch_deck/pitch_deck_plan.md`: slide strategy and speaker notes.
 
 ## Notes
 
 - Joint angles are in radians; distances are in millimeters.
-- `RoboRoll.py` is the visual/development model; `../base_robot.py` is the
-  compact submission model that mirrors the same kinematic structure.
-- The smiley face uses face-circle arc transits between features so the robot
-  never cuts a diagonal line across the face panel.
+- `section_1_2_kinematics/RoboRoll.py` is the visual/development model.
+- `../base_robot.py` is the compact submission model that mirrors the same kinematic structure.
+- The Section 3 demo paints Wall 1 with five color stripes and Wall 2 with a smiley face.
