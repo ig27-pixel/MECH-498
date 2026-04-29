@@ -1,43 +1,50 @@
 # Project
 
-Final project workspace for the RoboRoll Coatings painting robot.
+Final RoboRoll Coatings project workspace for a custom 4-DOF painting robot.
 
-## Main Files
+## Files
 
-- `RoboRoll.py`: project robot class with FK, IK, and visualization support.
-- `project_demo.py`: separate Part 3 demonstration / visualization entry point.
-- `robot_components.py`: reusable joint / link rendering primitives.
+- `RoboRoll.py`: interactive project robot class with FK, IK, joint limits,
+  nozzle frame support, and matplotlib visualization.
+- `project_demo.py`: Part 3 room/painting demonstration using the RoboRoll
+  visual model.
+- `robot_components.py`: reusable joint, link, brush, and drawing primitives.
 - `drawing_helper.py`: 3D plotting helpers.
-- `general_utility.py`: validation and helper functions.
+- `general_utility.py`: validation and transform helpers.
+- `dh_graphic.py`, `dh_parameters.png`: DH-parameter illustration support.
 - `project intro 2026.pdf`: original project handout.
 
-## Part 3 Demonstration
+## Related Root Files
 
-Run the dedicated demo script from the repository root:
+- `../base_robot.py`: autograder-facing `BaseCustomRobot` implementation.
+- `../robot_config.yaml`: robot name, workspace bounds, DH-style dimensions,
+  and joint limits used by the submission model.
+
+## Run
+
+From the repository root:
 
 ```bash
 python Project/project_demo.py
 ```
 
-This opens a matplotlib window and runs a Lab-3-style painting demonstration:
+The demo opens a matplotlib window, starts the robot from home, shows a 2000 mm
+room box, and paints a compact multi-color path with the brush/nozzle attached
+to the end effector.
 
-- a brush tool is attached to the end effector
-- the RoboRoll arm paints a compact smiley on a reachable wall plane
-- all brushes can remain visible while only the selected brush paints
-- colored paint points are left behind in 3D space as the robot moves
+## Demo Tuning
 
-The effect is intentionally similar to the `picasso.py` style demonstration in `Lab-3`, but adapted to the 4-DOF RoboRoll project robot and its more limited reachable wall geometry.
+The main demo settings are in the `RoboRollRoomDemo` constructor call near the
+bottom of `project_demo.py`:
 
-You can speed the demo up by adjusting the constructor settings inside
-`project_demo.py`:
-
-- `samples_per_segment`: fewer path samples between waypoints
-- `max_joint_step_deg`: larger allowed IK interpolation step
-- `frame_delay`: less time between rendered frames
-- `paint_stride`: paint every Nth frame instead of every frame
-- `show_all_brushes`: keep all brushes visible while only the selected one paints
+- `frame_delay`: pause between rendered frames.
+- `paint_stride`: paint every Nth rendered frame.
+- `samples_per_segment`: interpolation density between waypoints.
+- `show_all_brushes`: show all brush tools while only the selected brush paints.
 
 ## Notes
 
-- The project robot model in `RoboRoll.py` has been aligned with the tested kinematic structure used by the submission model in `base_robot.py`.
-- The autograder-facing implementation still lives at the repository root in `base_robot.py`.
+- `RoboRoll.py` is the visual/development model.
+- `base_robot.py` is the compact submission model that mirrors the tested
+  kinematic structure.
+- Joint angles are in radians and distances are in millimeters.
