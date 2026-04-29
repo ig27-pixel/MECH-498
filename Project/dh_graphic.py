@@ -85,7 +85,7 @@ ax.text(ox0+L+6, oz0,     r"$x_0$", fontsize=10, color=C_X, va="center")
 ax.text(ox0+4,   oz0+L+6, r"$z_0$", fontsize=10, color=C_Z)
 ax.text(ox0+10,  oz0-32,  r"$\{0\}$", fontsize=11, fontweight="bold", ha="center")
 
-# ── Frame {1} — co-located with {0} at z = 0 (z₁ shares z₀ axis) ────────────
+# ── Frame {1} — co-located with {0} at z = 0 (d₁ absorbed into {1}→{2} step) ─
 ox1, oz1 = -240, 0
 arrow(ax, ox1, oz1, L, 0, C_X)
 arrow(ax, ox1, oz1, 0, L, C_Z)
@@ -188,8 +188,8 @@ ax_t.set_title("Modified DH Parameter Table",
 
 headers = [r"$i$", r"$\alpha_{i-1}$", r"$a_{i-1}$", r"$d_i$", r"$\theta_i$"]
 rows = [
-    ["1", r"$0°$",   "0 mm",   "500 mm", r"$\theta_1$"],
-    ["2", r"$-90°$", "0 mm",   "0 mm",   r"$\theta_2$"],
+    ["1", r"$0°$",   "0 mm",   "0 mm",   r"$\theta_1$"],
+    ["2", r"$-90°$", "0 mm",   "500 mm", r"$\theta_2$"],
     ["3", r"$0°$",   "700 mm", "0 mm",   r"$\theta_3$"],
     ["4", r"$0°$",   "500 mm", "0 mm",   r"$\theta_4$"],
 ]

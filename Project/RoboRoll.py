@@ -111,8 +111,8 @@ class RoboRoll(object):
     def _forward_frame(self, joint_angles: np.ndarray) -> np.ndarray:
         t1, t2, t3, t4 = joint_angles
         return (
-            _tz(self.D_1)
-            @ _homogeneous(_rot_z(t1), np.zeros(3))
+            _homogeneous(_rot_z(t1), np.zeros(3))
+            @ _tz(self.D_1)
             @ _homogeneous(_rot_x(self.TOOL_TILT_X), np.zeros(3))
             @ _homogeneous(_rot_z(t2), np.zeros(3))
             @ _tx(self.A_2)
@@ -123,9 +123,10 @@ class RoboRoll(object):
 
     def _update_joint_transforms(self, joint_angles: np.ndarray) -> None:
         t1, t2, t3, t4 = joint_angles
-        self._joint_1.set_dh_transform(_tz(self.D_1) @ _homogeneous(_rot_z(t1), np.zeros(3)))
+        self._joint_1.set_dh_transform(_homogeneous(_rot_z(t1), np.zeros(3)))
         self._joint_2.set_dh_transform(
-            _homogeneous(_rot_x(self.TOOL_TILT_X), np.zeros(3))
+            _tz(self.D_1)
+            @ _homogeneous(_rot_x(self.TOOL_TILT_X), np.zeros(3))
             @ _homogeneous(_rot_z(t2), np.zeros(3))
         )
         self._joint_3.set_dh_transform(_tx(self.A_2) @ _homogeneous(_rot_z(t3), np.zeros(3)))

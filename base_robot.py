@@ -124,8 +124,8 @@ class BaseCustomRobot(object):
         t1, t2, t3, t4 = joint_angles
 
         return (
-            _tz(self.D[0])
-            @ _homogeneous(_rot_z(t1), np.zeros(3))
+            _homogeneous(_rot_z(t1), np.zeros(3))
+            @ _tz(self.D[0])
             @ _homogeneous(_rot_x(self.TOOL_TILT_X), np.zeros(3))
             @ _homogeneous(_rot_z(t2), np.zeros(3))
             @ _tx(self.A[2])
