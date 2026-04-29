@@ -68,7 +68,7 @@ class RobStudent(RobSimulation):
     """
     total_duration = 30.0
 
-    # Reserve time windows for travel and waypoint dwells.
+    # Reserve time windows for travel and waypoint dwells
     t_dwell0_end = 1.5
     t_arrive1 = 5.5
     t_dwell1_end = 7.0
@@ -76,7 +76,7 @@ class RobStudent(RobSimulation):
     t_dwell2_end = 13.0
     t_arrive3 = 22.0
 
-    # Prefer the nominal home posture when multiple IK solutions exist.
+    # Prefer the nominal home posture when multiple IK solutions exist
     home_seed = np.array([0.0, np.radians(-20.0), np.radians(20.0)])
     home_waypoint = np.asarray(waypoints[0], dtype=float)
     p_x, p_y, p_z = home_waypoint
@@ -102,7 +102,7 @@ class RobStudent(RobSimulation):
     ])
     theta_3 = np.array([theta_3[0], theta_3[1], theta_3[0], theta_3[1]])
 
-    # Collect valid home IK solutions and keep only unique ones.
+    # Collect valid home IK solutions and keep only unique ones
     q0_candidates = []
     for idx in range(4):
       q = np.array([theta_1[idx], theta_2[idx], theta_3[idx]])
@@ -120,7 +120,7 @@ class RobStudent(RobSimulation):
       q0 = home_seed.copy()
     self._home_waypoint = home_waypoint.copy()
 
-    # Solve the first task waypoint near the previous joint state.
+    # Solve the first task waypoint near the previous joint state
     waypoint_1 = np.asarray(waypoints[1], dtype=float)
     p_x, p_y, p_z = waypoint_1
     theta_1 = np.array([np.arctan2(p_y, p_x), np.arctan2(-p_y, -p_x)])
@@ -159,7 +159,7 @@ class RobStudent(RobSimulation):
         raise ValueError(f"No IK solution found for waypoint {waypoint_1}")
       q1 = q1.copy()
 
-    # Solve the second task waypoint near the first waypoint solution.
+    # Solve the second task waypoint near the first waypoint solution
     waypoint_2 = np.asarray(waypoints[2], dtype=float)
     p_x, p_y, p_z = waypoint_2
     theta_1 = np.array([np.arctan2(p_y, p_x), np.arctan2(-p_y, -p_x)])
@@ -198,7 +198,7 @@ class RobStudent(RobSimulation):
         raise ValueError(f"No IK solution found for waypoint {waypoint_2}")
       q2 = q2.copy()
 
-    # Reuse the original home solution when the last waypoint matches home.
+    # Reuse the original home solution when the last waypoint matches home
     if np.linalg.norm(np.asarray(waypoints[3], dtype=float) - np.asarray(waypoints[0], dtype=float)) < 1e-6:
       q3 = q0.copy()
     else:
@@ -246,12 +246,12 @@ class RobStudent(RobSimulation):
     self._int_err[:] = 0.0
     self._int_started = False
 
-    # Sample the full 30-second trajectory at the simulator timestep.
+    # Sample the full 30-second trajectory at the simulator timestep
     dt = self._dt
     n = int(round(total_duration / dt)) + 1
     timestamps = np.linspace(0.0, total_duration, n)
 
-    # Build piecewise-smooth joint references through the four waypoints.
+    # Build piecewise-smooth joint references through the four waypoints
     joint_poses = np.zeros((3, n))
     for i, t in enumerate(timestamps):
       if t < t_dwell0_end:
@@ -279,12 +279,12 @@ class RobStudent(RobSimulation):
         q = q3.copy()
       joint_poses[:, i] = q
 
-    # Estimate reference velocities from the joint-position samples.
+    # Estimate reference velocities from the joint-position samples
     joint_vels = np.zeros_like(joint_poses)
     for i in range(1, n - 1):
       joint_vels[:, i] = (joint_poses[:, i + 1] - joint_poses[:, i - 1]) / (2.0 * dt)
 
-    # Force zero desired velocity during each dwell segment.
+    # Force zero desired velocity during each dwell segment
     for i, t in enumerate(timestamps):
       in_dwell = (t < t_dwell0_end or
                   t_arrive1 <= t < t_dwell1_end or
@@ -293,7 +293,7 @@ class RobStudent(RobSimulation):
       if in_dwell:
         joint_vels[:, i] = 0.0
 
-    # Package the sampled references into the provided Trajectory class.
+    # Package the sampled references into the provided Trajectory class
     traj = Trajectory()
     traj.set_timestamps(timestamps)
     traj.set_joint_1_poses(joint_poses[0])
@@ -338,19 +338,19 @@ class RobStudent(RobSimulation):
     Tip:
         - don't forget about gravity! 
     """
-    # Refresh payload-dependent parameters if the carried mass changes.
+    # Refresh payload-dependent parameters if the carried mass changes
     t = float(timestep)
     if float(self.m4) != self._last_m4:
       self.calculate_parameters()
       self._last_m4 = float(self.m4)
 
-    # Read the desired joint state from the stored reference trajectory.
+    # Read the desired joint state from the stored reference trajectory
     theta_ref, theta_dot_ref = self._get_desired_state(t)
 
     pos_err = theta_ref - theta
     vel_err = theta_dot_ref - theta_dot
 
-    # Use phase-dependent gains to balance travel speed and settling.
+    # Use phase-dependent gains to balance travel speed and settling
     if self._ik_angles is not None:
       _, _, t1e, t2a, t2e, t3a = self._t_seg
       if t < t1e:
@@ -363,9 +363,11 @@ class RobStudent(RobSimulation):
         kp = np.array([280.0, 760.0, 320.0])
         kd = np.array([95.0, 260.0, 110.0])
       elif t < t3a:
+        # Use gentler gains on the return-home segment
         kp = np.array([120.0, 300.0, 120.0])
         kd = np.array([45.0, 95.0, 45.0])
       else:
+        # Keep the same well-damped gains while holding home so the arm settles
         kp = np.array([120.0, 300.0, 120.0])
         kd = np.array([45.0, 95.0, 45.0])
     else:
@@ -377,7 +379,7 @@ class RobStudent(RobSimulation):
     c2 = np.cos(theta[1])
     c23 = np.cos(theta[1] + theta[2])
     distal_mass = self.m3 + self.m4
-    # Add gravity feed-forward so the PD terms do not fight static load alone.
+    # Add gravity feed-forward so the PD terms do not fight static load alone
     gravity = np.array([
         0.0,
         self.g * 1e-3 * (self.m2 * (self.l2 / 2.0) * c2 +
@@ -390,7 +392,7 @@ class RobStudent(RobSimulation):
            kd * vel_err +
            gravity)
 
-    # Keep a small integral term only during the payload transfer segment.
+    # Keep a small integral term only during the payload transfer segment
     if self._ik_angles is not None and t2a <= t <= t2e:
       if not self._int_started:
         self._int_err[:] = 0.0
