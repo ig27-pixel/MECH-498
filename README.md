@@ -11,7 +11,7 @@ painting-robot project.
 - `Lab-3`: Fanuc IK path following with brush/tool-offset drawing tasks.
 - `Lab-4`: RRBot and RobStudent simulation, dynamics, trajectory, and control work.
 - `Project`: final RoboRoll 4-DOF painting robot and demo.
-- `base_robot.py`: autograder-facing RoboRoll model.
+- `base_robot.py`: compact RoboRoll model for project submission.
 - `robot_config.yaml`: RoboRoll metadata, workspace bounds, DH values, and joint limits.
 
 ## Environment

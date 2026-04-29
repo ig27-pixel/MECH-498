@@ -16,7 +16,8 @@ Final RoboRoll Coatings project workspace for a custom 4-DOF painting robot.
 
 ## Related Root Files
 
-- `../base_robot.py`: autograder-facing `BaseCustomRobot` implementation.
+- `../base_robot.py`: compact `BaseCustomRobot` implementation for project
+  submission.
 - `../robot_config.yaml`: robot name, workspace bounds, DH-style dimensions,
   and joint limits used by the submission model.
 

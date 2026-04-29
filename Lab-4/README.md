@@ -31,8 +31,7 @@ python test_rob.py 3
 ```
 
 `test_rob.py` expects a trajectory number argument. It runs the simulation and
-opens diagnostic matplotlib plots; it is a visual/debug runner, not a strict
-pass/fail autograder.
+opens diagnostic matplotlib plots for visual debugging.
 
 ## Notes
 
