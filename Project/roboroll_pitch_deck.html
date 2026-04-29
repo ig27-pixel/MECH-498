@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RoboRoll Coatings Pitch Deck</title>
+  <style>
+    :root {
+      --ink: #17202a;
+      --muted: #5b6673;
+      --line: #d7dde5;
+      --paper: #f8fafc;
+      --blue: #1f6feb;
+      --green: #1b8f5a;
+      --orange: #d65f21;
+      --dark: #111827;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      color: var(--ink);
+      background: var(--dark);
+    }
+    .deck {
+      height: 100vh;
+      overflow-y: auto;
+      scroll-snap-type: y mandatory;
+    }
+    .slide {
+      min-height: 100vh;
+      scroll-snap-align: start;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(320px, 0.92fr);
+      gap: 40px;
+      align-items: center;
+      padding: 54px 70px;
+      background: var(--paper);
+      border-bottom: 1px solid var(--line);
+    }
+    .slide.full {
+      grid-template-columns: 1fr;
+      align-items: end;
+      color: white;
+      background:
+        linear-gradient(90deg, rgba(10, 18, 32, 0.9), rgba(10, 18, 32, 0.32)),
+        url("roboroll_demo_snapshot.png") center / cover no-repeat;
+    }
+    .slide.dark {
+      grid-template-columns: 1fr;
+      text-align: center;
+      color: white;
+      background: #111827;
+    }
+    .slide.center {
+      grid-template-columns: 1fr;
+      text-align: center;
+    }
+    .content { max-width: 790px; }
+    .center .content, .dark .content { margin: 0 auto; }
+    .eyebrow {
+      margin: 0 0 14px;
+      color: var(--blue);
+      font-size: 15px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .full .eyebrow, .dark .eyebrow { color: #8fc0ff; }
+    h1, h2 {
+      margin: 0;
+      line-height: 1.02;
+      letter-spacing: 0;
+    }
+    h1 { font-size: 68px; max-width: 790px; }
+    h2 { font-size: 46px; }
+    p {
+      font-size: 22px;
+      line-height: 1.35;
+      color: var(--muted);
+    }
+    .full p, .dark p { color: #e5edf7; }
+    ul {
+      margin: 28px 0 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 16px;
+    }
+    li {
+      font-size: 24px;
+      line-height: 1.25;
+      padding-left: 28px;
+      position: relative;
+    }
+    li::before {
+      content: "";
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--orange);
+      position: absolute;
+      left: 0;
+      top: 11px;
+    }
+    .media {
+      width: 100%;
+      min-height: 410px;
+      display: grid;
+      place-items: center;
+    }
+    .media img {
+      max-width: 100%;
+      max-height: 76vh;
+      object-fit: contain;
+      border: 1px solid var(--line);
+      background: white;
+    }
+    .split-images {
+      display: grid;
+      gap: 16px;
+    }
+    .split-images img { max-height: 36vh; }
+    .grid3, .grid4 {
+      display: grid;
+      gap: 18px;
+      margin-top: 34px;
+      text-align: left;
+    }
+    .grid3 { grid-template-columns: repeat(3, 1fr); }
+    .grid4 { grid-template-columns: repeat(4, 1fr); }
+    .tile {
+      border-top: 4px solid var(--green);
+      padding-top: 14px;
+    }
+    .tile strong {
+      display: block;
+      font-size: 28px;
+      margin-bottom: 8px;
+    }
+    .tile span {
+      color: var(--muted);
+      font-size: 18px;
+      line-height: 1.3;
+    }
+    .dark .tile span { color: #cbd5e1; }
+    .roadmap .tile { border-color: var(--blue); }
+    .two-col {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 18px;
+      margin-top: 30px;
+      text-align: left;
+    }
+    .notes {
+      position: fixed;
+      right: 14px;
+      bottom: 12px;
+      color: #cbd5e1;
+      font-size: 13px;
+    }
+    @media (max-width: 900px) {
+      .slide {
+        grid-template-columns: 1fr;
+        padding: 34px 28px;
+        gap: 24px;
+      }
+      h1 { font-size: 48px; }
+      h2 { font-size: 34px; }
+      p, li { font-size: 20px; }
+      .grid3, .grid4, .two-col { grid-template-columns: 1fr; }
+      .media { min-height: 280px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="deck">
+    <section class="slide full">
+      <div class="content">
+        <p class="eyebrow">Startup pitch</p>
+        <h1>RoboRoll Coatings</h1>
+        <p>Robotic wall painting for faster, safer, more repeatable interior finishing.</p>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="content">
+        <p class="eyebrow">1. The problem</p>
+        <h2>Interior painting is still a manual bottleneck.</h2>
+        <ul>
+          <li>Repetitive wall coverage consumes crew hours.</li>
+          <li>Quality changes with fatigue, reach, lighting, and setup consistency.</li>
+          <li>Labor bottlenecks delay final construction turnover.</li>
+        </ul>
+      </div>
+      <div class="media">
+        <img src="roboroll_demo_snapshot.png" alt="RoboRoll room painting simulation">
+      </div>
+    </section>
+
+    <section class="slide center">
+      <div class="content">
+        <p class="eyebrow">2. Why it matters</p>
+        <h2>Construction needs focused automation that helps crews now.</h2>
+        <div class="grid3">
+          <div class="tile"><strong>Common task</strong><span>Painting shows up across apartments, commercial spaces, and new builds.</span></div>
+          <div class="tile"><strong>Repeatable work</strong><span>Large wall areas create predictable paths that a robot can execute.</span></div>
+          <div class="tile"><strong>Schedule value</strong><span>Fewer rework passes mean more predictable finishing timelines.</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="content">
+        <p class="eyebrow">3. The solution</p>
+        <h2>A portable 4-DOF robot that follows planned wall paths.</h2>
+        <ul>
+          <li>Base yaw aims the arm around the room.</li>
+          <li>Shoulder, elbow, and wrist place the nozzle on target.</li>
+          <li>Inverse kinematics converts wall points into smooth joint motion.</li>
+        </ul>
+      </div>
+      <div class="media">
+        <img src="dh_parameters.png" alt="RoboRoll DH parameter diagram">
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="content">
+        <p class="eyebrow">4. Product demo</p>
+        <h2>The simulated robot already paints across two walls.</h2>
+        <ul>
+          <li>Wall 1: five horizontal color stripes.</li>
+          <li>Wall 2: face outline, eyes, and smile arc.</li>
+          <li>Curved paths prove more than straight-line coverage.</li>
+        </ul>
+      </div>
+      <div class="media">
+        <img src="roboroll_demo_snapshot.png" alt="Two-wall RoboRoll painting demo">
+      </div>
+    </section>
+
+    <section class="slide center">
+      <div class="content">
+        <p class="eyebrow">5. Why we win</p>
+        <h2>RoboRoll starts with one focused construction task.</h2>
+        <div class="grid3">
+          <div class="tile"><strong>Focused wedge</strong><span>Interior wall finishing is narrow enough for a first product.</span></div>
+          <div class="tile"><strong>Technical proof</strong><span>FK, IK, trajectory generation, and dynamics are already simulated.</span></div>
+          <div class="tile"><strong>The ask</strong><span>Seed funding turns the validated simulation into a portable prototype.</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide dark">
+      <div class="content">
+        <p class="eyebrow">Thank you</p>
+        <h1>RoboRoll Coatings</h1>
+        <p>Robotic painting for the next generation of construction crews.</p>
+      </div>
+    </section>
+
+    <section class="slide dark">
+      <div class="content">
+        <p class="eyebrow">Additional materials</p>
+        <h1>Leave-Behind Slides</h1>
+        <p>The following slides provide the fuller technical, market, and roadmap story.</p>
+      </div>
+    </section>
+
+    <section class="slide center">
+      <div class="content">
+        <p class="eyebrow">A1. Beachhead market</p>
+        <h2>Start where repeatability matters and setup time pays back.</h2>
+        <div class="grid3">
+          <div class="tile"><strong>Apartments</strong><span>Fast turns and repeat room layouts.</span></div>
+          <div class="tile"><strong>Commercial</strong><span>Tenant improvements with large wall areas.</span></div>
+          <div class="tile"><strong>New builds</strong><span>Interior finishing crews that need predictable throughput.</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide center">
+      <div class="content">
+        <p class="eyebrow">A2. Customer workflow</p>
+        <h2>RoboRoll helps one operator supervise repeatable wall coverage.</h2>
+        <div class="grid4 roadmap">
+          <div class="tile"><strong>1. Position</strong><span>Roll the robot into the room near the target wall.</span></div>
+          <div class="tile"><strong>2. Calibrate</strong><span>Register the wall plane and reachable painting area.</span></div>
+          <div class="tile"><strong>3. Paint</strong><span>Execute planned coverage paths with human supervision.</span></div>
+          <div class="tile"><strong>4. Verify</strong><span>Inspect coverage, refill, and move to the next room.</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="content">
+        <p class="eyebrow">A3. Robot architecture</p>
+        <h2>The first design is intentionally simple.</h2>
+        <ul>
+          <li>4 revolute joints: base yaw, shoulder pitch, elbow pitch, wrist pitch.</li>
+          <li>500 mm base height with 700 mm and 500 mm arm links.</li>
+          <li>200 mm nozzle offset for reaching the wall surface.</li>
+        </ul>
+      </div>
+      <div class="media">
+        <img src="dh_parameters.png" alt="RoboRoll robot architecture">
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="content">
+        <p class="eyebrow">A4. Kinematics proof</p>
+        <h2>The robot can turn wall targets into joint commands.</h2>
+        <ul>
+          <li>Forward kinematics verifies the end-effector pose.</li>
+          <li>Inverse kinematics solves reachable wall targets.</li>
+          <li>Joint limits prevent unrealistic poses during planning.</li>
+        </ul>
+      </div>
+      <div class="media">
+        <img src="dh_parameters.png" alt="Forward and inverse kinematics structure">
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="content">
+        <p class="eyebrow">A5. Demo path details</p>
+        <h2>The demo combines coverage and detail work.</h2>
+        <ul>
+          <li>343 rendered frames.</li>
+          <li>Smoothstep interpolation between IK waypoints.</li>
+          <li>Lift motions prevent unwanted diagonal paint marks.</li>
+        </ul>
+      </div>
+      <div class="media">
+        <img src="roboroll_demo_snapshot.png" alt="RoboRoll demo path details">
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="content">
+        <p class="eyebrow">A6. Dynamics proof</p>
+        <h2>The simulation includes physical reasoning.</h2>
+        <ul>
+          <li>Passive motion checks kinetic, potential, and total energy behavior.</li>
+          <li>PD plus gravity feedforward controls motion to a painting target.</li>
+          <li>Torque and velocity plots support physically reasonable motion.</li>
+        </ul>
+      </div>
+      <div class="media split-images">
+        <img src="dynamics_passive.png" alt="Passive energy plot">
+        <img src="dynamics_controlled.png" alt="Controlled dynamics plot">
+      </div>
+    </section>
+
+    <section class="slide center">
+      <div class="content">
+        <p class="eyebrow">A7. Development roadmap</p>
+        <h2>The next milestones move from simulation to hardware.</h2>
+        <div class="grid4 roadmap">
+          <div class="tile"><strong>End effector</strong><span>Prototype paint delivery and nozzle control.</span></div>
+          <div class="tile"><strong>Calibration</strong><span>Add wall sensing and room registration.</span></div>
+          <div class="tile"><strong>Testing</strong><span>Measure repeatability on drywall panels.</span></div>
+          <div class="tile"><strong>Workflow</strong><span>Build the operator setup process.</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide center">
+      <div class="content">
+        <p class="eyebrow">A8. Risks and mitigations</p>
+        <h2>The key risks are practical and testable.</h2>
+        <div class="two-col">
+          <div class="tile"><strong>Surface quality</strong><span>Test nozzle spacing, flow rate, and overlap on drywall panels.</span></div>
+          <div class="tile"><strong>Wall localization</strong><span>Add sensing and calibration before each room run.</span></div>
+          <div class="tile"><strong>Setup time</strong><span>Design a simple operator workflow with repeatable presets.</span></div>
+          <div class="tile"><strong>Safety</strong><span>Limit speed, add supervised operation, and define a work envelope.</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide center">
+      <div class="content">
+        <p class="eyebrow">A9. Funding use</p>
+        <h2>Funding turns the validated simulation into a prototype.</h2>
+        <div class="grid4 roadmap">
+          <div class="tile"><strong>Arm</strong><span>Build a first portable mechanism.</span></div>
+          <div class="tile"><strong>Paint tool</strong><span>Integrate nozzle, flow, and cleanup hardware.</span></div>
+          <div class="tile"><strong>Sensing</strong><span>Add wall plane detection and calibration.</span></div>
+          <div class="tile"><strong>Testing</strong><span>Run repeatability and finish-quality trials.</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide dark">
+      <div class="content">
+        <p class="eyebrow">A10. Closing story</p>
+        <h1>A focused wedge into construction automation.</h1>
+        <p>RoboRoll begins with repeatable interior painting, proves value in controlled room-scale tasks, and expands toward broader finishing automation.</p>
+      </div>
+    </section>
+  </main>
+  <div class="notes">Use Page Down / Page Up or scroll to present.</div>
+</body>
+</html>
