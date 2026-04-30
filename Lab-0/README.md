@@ -14,19 +14,22 @@ implementation, and plotting.
 
 ## Run
 
-From this folder:
+From this folder or from the repository root:
 
 ```bash
+# from Lab-0/
 python investment_student.py
+
+# from repository root
+python Lab-0/investment_student.py
 ```
 
-The script prints the retirement scenario results and may open matplotlib plots
-depending on the code path used.
+The script prints the retirement scenario results and opens matplotlib plots
+for each scenario.
 
 ## Notes
 
-- The main work is in `StudentInvestment`.
-- Dollar amounts use the default salary and contribution rules from
-  `investment_base.py`.
-- `*.Zone.Identifier` files are Windows download metadata and are not part of
-  the lab logic.
+- All student logic lives in the `StudentInvestment` class in
+  `investment_student.py`.
+- Dollar amounts and salary defaults come from `investment_base.py`; do not
+  modify the base class.

@@ -1,6 +1,8 @@
 # Lab 1
 
-Coordinate-transform and Phantom robot kinematics lab.
+Coordinate-transform and Phantom robot kinematics lab. Covers rotation matrices,
+homogeneous transforms, screw and DH transforms, forward kinematics, and joint
+actuation conversion for the Phantom haptic robot.
 
 ## Files
 
@@ -11,7 +13,7 @@ Coordinate-transform and Phantom robot kinematics lab.
 - `run_path.py`: loads `path.yaml`, animates the robot path, and writes
   `phantom_video.gif`.
 - `path.yaml`: joint path data for the animation.
-- `phantom_video.gif`: generated/reference animation output.
+- `phantom_video.gif`: pre-generated reference animation (overwritten on re-run).
 - `498-2026-lab1.pdf`: original assignment handout.
 
 ## Run
@@ -27,7 +29,8 @@ animation as `phantom_video.gif`.
 
 ## Notes
 
-- This lab imports `PyKDL`, `numpy`, `matplotlib`, and `yaml`.
+- Dependencies: `PyKDL` (Python Kinematics and Dynamics Library), `numpy`,
+  `matplotlib`, `yaml`.
 - `lab1.py` is the file to inspect first when checking the transform math.
-- The GIF is generated output; rerunning the script may overwrite it.
+- Rerunning `run_path.py` overwrites the existing `phantom_video.gif`.
 

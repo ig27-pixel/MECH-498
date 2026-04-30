@@ -330,9 +330,6 @@ class RoboRollRoomDemo(RoboRoll):
         for pt in smile_pts:
             wp.append(paint(ik(*pt), face_col))
 
-        # ── return home ───────────────────────────────────────────────────────
-        wp.append(lift(home))
-
         return self._interpolate_waypoints(wp)
 
     # ── run ──────────────────────────────────────────────────────────────────
