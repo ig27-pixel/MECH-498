@@ -1,7 +1,7 @@
 """project_demo.py — Section 3: RoboRoll Coatings demonstration.
 
-Wall 1 (X = +900 mm): five horizontal colour-sweep stripes.
-Wall 2 (Y = +900 mm): a smiley face (outline, eyes, smile).
+Wall 1 (X = +900 mm): a smiley face (outline, eyes, smile).
+Wall 2 (Y = +900 mm): five horizontal colour-sweep stripes.
 
 Run from the repository root:
     python Project/section_3_demo/project_demo.py
@@ -221,8 +221,8 @@ class RoboRollRoomDemo(RoboRoll):
     def build_demo_path(self) -> List[Tuple[np.ndarray, int, bool, float]]:
         """Build the full two-wall painting path.
 
-        Wall 1 — five horizontal colour stripes (top → bottom).
-        Wall 2 — smiley face (outline, eyes, smile arc).
+        Wall 2 — five horizontal colour stripes (top → bottom).
+        Wall 1 — smiley face (outline, eyes, smile arc).
         """
         home = np.zeros(4, dtype=float)
         prev = home.copy()
@@ -243,44 +243,44 @@ class RoboRollRoomDemo(RoboRoll):
         # ── start at home ────────────────────────────────────────────────────
         wp.append(lift(home))
 
-        # ── Wall 1: five horizontal stripes ──────────────────────────────────
+        # ── Wall 2: five horizontal stripes ──────────────────────────────────
         stripe_z      = [730, 625, 520, 415, 320]
         stripe_colors = [  1,   2,   3,   4,   2]
-        stripe_ys     = np.linspace(self.W1_Y0 + 20, self.W1_Y1 - 20, 7)
+        stripe_xs     = np.linspace(self.W2_X0 + 20, self.W2_X1 - 20, 7)
 
         for i, (sz, sc) in enumerate(zip(stripe_z, stripe_colors)):
-            ys = stripe_ys if (i % 2 == 0) else stripe_ys[::-1]
+            xs = stripe_xs if (i % 2 == 0) else stripe_xs[::-1]
 
             # approach: lift above the stripe start (no paint)
-            wp.append(lift(ik(self.W1_X, ys[0], sz + 70)))
+            wp.append(lift(ik(xs[0], self.W2_Y, sz + 70)))
             # paint the full stripe
-            for y in ys:
-                wp.append(paint(ik(self.W1_X, y, sz), sc))
+            for x in xs:
+                wp.append(paint(ik(x, self.W2_Y, sz), sc))
             # lift after stripe end
-            wp.append(lift(ik(self.W1_X, ys[-1], sz + 70)))
+            wp.append(lift(ik(xs[-1], self.W2_Y, sz + 70)))
 
         wp.append(lift(home))
 
-        # ── Wall 2: smiley face ───────────────────────────────────────────────
-        FC = (0.0, self.W2_Y, 530.0)   # face centre (room coords)
+        # ── Wall 1: smiley face ───────────────────────────────────────────────
+        FC = (self.W1_X, 0.0, 530.0)   # face centre (room coords)
         FR = 200.0                      # face radius [mm]
         EC = 36.0                       # eye circle radius [mm]
         face_col = 3                    # orange
 
-        # seed IK toward wall 2 before starting
+        # seed IK toward wall 1 before starting
         _ = ik(*FC)
 
         def face_transit(a_from: float, a_to: float, n: int = 5) -> None:
             """Lift-only arc along the face circle from a_from to a_to (radians)."""
             diff = (a_to - a_from + math.pi) % (2 * math.pi) - math.pi
             for a in np.linspace(a_from, a_from + diff, n + 2)[1:-1]:
-                pt = (FC[0] + FR * math.cos(a), FC[1], FC[2] + FR * math.sin(a))
+                pt = (FC[0], FC[1] + FR * math.cos(a), FC[2] + FR * math.sin(a))
                 wp.append(lift(ik(*pt)))
 
         # — face outline —
         n_out = 18
         out_angles = np.linspace(0, 2 * math.pi, n_out, endpoint=False)
-        out_pts = [(FC[0] + FR * math.cos(a), FC[1], FC[2] + FR * math.sin(a))
+        out_pts = [(FC[0], FC[1] + FR * math.cos(a), FC[2] + FR * math.sin(a))
                    for a in out_angles]
 
         wp.append(lift(ik(*out_pts[0])))
@@ -292,9 +292,9 @@ class RoboRollRoomDemo(RoboRoll):
         face_transit(0.0, math.radians(138))
 
         # — left eye —
-        LE = (FC[0] - 88.0, FC[1], FC[2] + 80.0)
+        LE = (FC[0], FC[1] - 88.0, FC[2] + 80.0)
         le_angles = np.linspace(0, 2 * math.pi, 8, endpoint=False)
-        le_pts = [(LE[0] + EC * math.cos(a), FC[1], LE[2] + EC * math.sin(a))
+        le_pts = [(FC[0], LE[1] + EC * math.cos(a), LE[2] + EC * math.sin(a))
                   for a in le_angles]
 
         wp.append(lift(ik(*le_pts[0])))
@@ -306,8 +306,8 @@ class RoboRollRoomDemo(RoboRoll):
         face_transit(math.radians(138), math.radians(42))
 
         # — right eye —
-        RE = (FC[0] + 88.0, FC[1], FC[2] + 80.0)
-        re_pts = [(RE[0] + EC * math.cos(a), FC[1], RE[2] + EC * math.sin(a))
+        RE = (FC[0], FC[1] + 88.0, FC[2] + 80.0)
+        re_pts = [(FC[0], RE[1] + EC * math.cos(a), RE[2] + EC * math.sin(a))
                   for a in le_angles]
 
         wp.append(lift(ik(*re_pts[0])))
@@ -321,8 +321,8 @@ class RoboRollRoomDemo(RoboRoll):
         # — smile arc (200° → 340°, lifted slightly above centre) —
         smile_angles = np.linspace(math.radians(200), math.radians(340), 11)
         smile_rc = (FC[0], FC[1], FC[2] + 10.0)   # arc centre, slightly above face centre
-        smile_pts = [(smile_rc[0] + 145 * math.cos(a),
-                      FC[1],
+        smile_pts = [(FC[0],
+                      smile_rc[1] + 145 * math.cos(a),
                       smile_rc[2] + 145 * math.sin(a))
                      for a in smile_angles]
 
@@ -348,8 +348,8 @@ class RoboRollRoomDemo(RoboRoll):
 
 def main() -> None:
     print("RoboRoll Coatings — Demo")
-    print("  Wall 1 (X=900 mm): five horizontal colour stripes")
-    print("  Wall 2 (Y=900 mm): smiley face")
+    print("  Wall 1 (X=900 mm): smiley face")
+    print("  Wall 2 (Y=900 mm): five horizontal colour stripes")
 
     robot = RoboRollRoomDemo(
         drawing_enabled=True,
