@@ -111,7 +111,6 @@ class RoboRollRoomDemo(RoboRoll):
 
         if self._drawing_enabled:
             self._configure_room_view()
-            self._draw_room()
 
     # ── view / room ──────────────────────────────────────────────────────────
 
@@ -130,38 +129,6 @@ class RoboRollRoomDemo(RoboRoll):
             self.ax.set_box_aspect((2.0, 2.0, 1.0))
         except Exception:
             pass
-
-    def _draw_room(self) -> None:
-        if not self._drawing_enabled or self.ax is None:
-            return
-        r = self.ROOM_HALF
-        corners = np.array([[-r,-r,0],[r,-r,0],[r,r,0],[-r,r,0],
-                             [-r,-r,r],[r,-r,r],[r,r,r],[-r,r,r]])
-        edges = [(0,1),(1,2),(2,3),(3,0),(4,5),(5,6),(6,7),(7,4),
-                 (0,4),(1,5),(2,6),(3,7)]
-        for a, b in edges:
-            self.ax.plot(*zip(corners[a], corners[b]),
-                         color="#aaaaaa", linewidth=0.9, alpha=0.8)
-
-        # Wall 1 panel (X = 900)
-        yw = np.array([self.W1_Y0, self.W1_Y1])
-        zw = np.array([self.W1_Z0, self.W1_Z1])
-        YY, ZZ = np.meshgrid(yw, zw)
-        XX = np.full_like(YY, self.W1_X)
-        self.ax.plot_surface(XX, YY, ZZ, color="#c8d8ee", alpha=0.22, shade=False)
-
-        # Wall 2 panel (Y = 900)
-        xw = np.array([self.W2_X0, self.W2_X1])
-        zw2 = np.array([self.W2_Z0, self.W2_Z1])
-        XX2, ZZ2 = np.meshgrid(xw, zw2)
-        YY2 = np.full_like(XX2, self.W2_Y)
-        self.ax.plot_surface(XX2, YY2, ZZ2, color="#c8eec8", alpha=0.22, shade=False)
-
-        # Wall labels
-        self.ax.text(self.W1_X, 0, self.W1_Z1 + 40,
-                     "Wall 1", color="#2255aa", fontsize=9, ha="center")
-        self.ax.text(0, self.W2_Y, self.W2_Z1 + 40,
-                     "Wall 2", color="#227722", fontsize=9, ha="center")
 
     # ── drawing ──────────────────────────────────────────────────────────────
 
