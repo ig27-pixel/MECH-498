@@ -1,7 +1,7 @@
-# Section 3 — Two-Wall Painting Demo
+# Section 3 — Four-Wall Painting Demo
 
-Interactive 3D animation of RoboRoll painting across two perpendicular walls
-using planned IK paths and smoothstep-interpolated waypoints.
+Interactive 3D animation of RoboRoll painting across four walls using planned
+IK paths and smoothstep-interpolated waypoints.
 
 ## Files
 
@@ -24,12 +24,14 @@ python Project/section_3_demo/project_demo.py --gif
 
 ## Demo Sequence
 
-1. **Wall 2 (Y = 900 mm)** — five horizontal colour stripes painted top to
-   bottom, alternating direction each pass.
-2. **Wall 1 (X = 900 mm)** — smiley face: circular outline, two eyes, and a
+1. **Wall 2 (Y = +900 mm)** — five horizontal colour stripes, top to bottom,
+   alternating direction each pass.
+2. **Wall 1 (X = +900 mm)** — smiley face: circular outline, two eyes, and a
    smile arc painted with IK-solved curved paths.
+3. **Wall 3 (X = −900 mm)** — five horizontal colour stripes.
+4. **Wall 4 (Y = −900 mm)** — five horizontal colour stripes.
 
-The demo stops after the last smile stroke; the window stays open until closed.
+The robot returns home between each wall. The window stays open until closed.
 
 ## Notes
 

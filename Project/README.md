@@ -1,9 +1,9 @@
 # Project
 
 Final project workspace for **RoboRoll Coatings** — a custom 4-DOF serial robot
-designed to paint flat vertical surfaces. The robot uses a prismatic base (Z
-lift), two revolute shoulder joints, and a revolute wrist to reach two
-perpendicular walls.
+designed to paint flat vertical surfaces. The robot uses four revolute joints:
+a base yaw (J1), shoulder pitch (J2), elbow pitch (J3), and wrist pitch (J4),
+with a fixed 500 mm column and a 200 mm paint nozzle offset.
 
 ## Folder Layout
 
@@ -11,7 +11,7 @@ perpendicular walls.
 | --- | --- |
 | `project intro 2026.pdf` | Original course project brief |
 | `section_1_2_kinematics/` | Robot model, FK/IK, and DH parameter diagram |
-| `section_3_demo/` | Two-wall painting trajectory demo and snapshot |
+| `section_3_demo/` | Four-wall painting trajectory demo and snapshot |
 | `section_4_dynamics/` | Passive and controlled dynamics simulation and plots |
 | `pitch_deck/` | HTML/PDF deck, plan notes, and mockup renders |
 | `shared/` | Reusable drawing, utility, joint, link, and brush helpers |
@@ -30,7 +30,7 @@ From the repository root (`MECH-498`):
 # Section 1/2 — regenerate DH parameter diagram
 python Project/section_1_2_kinematics/dh_graphic.py
 
-# Section 3 — two-wall painting animation
+# Section 3 — four-wall painting animation
 python Project/section_3_demo/project_demo.py
 
 # Section 4 — dynamics simulation plots
@@ -56,5 +56,5 @@ python Project/pitch_deck/export_pitch_deck.py
 - `section_1_2_kinematics/RoboRoll.py` is the full visual/development model.
 - `../base_robot.py` is the compact submission model with the same kinematic
   structure but no drawing dependencies.
-- The Section 3 demo paints Wall 1 with the smiley face and Wall 2 with five
-  color stripes.
+- The Section 3 demo paints four walls: Wall 1 (X = +900 mm) with a smiley
+  face, and Walls 2–4 each with five horizontal colour stripes.
