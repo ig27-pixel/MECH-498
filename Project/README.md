@@ -38,12 +38,16 @@ python Project/section_4_dynamics/RoboRoll_dynamics.py
 
 # Pitch deck — regenerate mockup images
 python Project/pitch_deck/render_pitch_mockups.py
+
+# Pitch deck — export PowerPoint
+python Project/pitch_deck/export_pitch_deck.py
 ```
 
 ## Pitch Deck Files
 
 - `pitch_deck/roboroll_pitch_deck.html`: browser-presentable slide deck.
 - `pitch_deck/roboroll_pitch_deck.pdf`: PDF export (print the HTML using Chrome or Edge → Save as PDF).
+- `pitch_deck/roboroll_pitch_deck.pptx`: PowerPoint export (run `export_pitch_deck.py`; requires `python-pptx`).
 - `pitch_deck/pitch_deck_plan.md`: slide strategy and speaker notes.
 
 ## Notes
