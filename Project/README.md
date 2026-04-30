@@ -13,7 +13,7 @@ perpendicular walls.
 | `section_1_2_kinematics/` | Robot model, FK/IK, and DH parameter diagram |
 | `section_3_demo/` | Two-wall painting trajectory demo and snapshot |
 | `section_4_dynamics/` | Passive and controlled dynamics simulation and plots |
-| `pitch_deck/` | HTML/PDF/PPTX deck, plan notes, and mockup renders |
+| `pitch_deck/` | HTML/PDF deck, plan notes, and mockup renders |
 | `shared/` | Reusable drawing, utility, joint, link, and brush helpers |
 
 ## Related Root Files
@@ -38,16 +38,12 @@ python Project/section_4_dynamics/RoboRoll_dynamics.py
 
 # Pitch deck — regenerate mockup images
 python Project/pitch_deck/render_pitch_mockups.py
-
-# Pitch deck — regenerate PowerPoint
-python Project/pitch_deck/export_pitch_deck.py
 ```
 
 ## Pitch Deck Files
 
 - `pitch_deck/roboroll_pitch_deck.html`: browser-presentable slide deck.
-- `pitch_deck/roboroll_pitch_deck.pdf`: PDF export.
-- `pitch_deck/roboroll_pitch_deck.pptx`: PowerPoint export.
+- `pitch_deck/roboroll_pitch_deck.pdf`: PDF export (print the HTML using Chrome or Edge → Save as PDF).
 - `pitch_deck/pitch_deck_plan.md`: slide strategy and speaker notes.
 
 ## Notes
@@ -56,5 +52,5 @@ python Project/pitch_deck/export_pitch_deck.py
 - `section_1_2_kinematics/RoboRoll.py` is the full visual/development model.
 - `../base_robot.py` is the compact submission model with the same kinematic
   structure but no drawing dependencies.
-- The Section 3 demo paints Wall 1 with five color stripes and Wall 2 with a
-  smiley face.
+- The Section 3 demo paints Wall 1 with the smiley face and Wall 2 with five
+  color stripes.

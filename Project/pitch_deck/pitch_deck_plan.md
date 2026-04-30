@@ -63,8 +63,8 @@ Message: The simulated robot already paints across two walls.
 
 Use three points:
 
-- Wall 1: five horizontal color stripes.
-- Wall 2: face outline, eyes, and smile arc.
+- Wall 1: smiley face — outline, eyes, and smile arc.
+- Wall 2: five horizontal color stripes.
 - Curved paths prove more than straight-line coverage.
 
 Visual: `roboroll_demo_snapshot.png`
@@ -150,7 +150,7 @@ Tell the story: The task is a miniature version of real coverage plus detail wor
 
 Proof points:
 
-- 343 rendered frames.
+- Hundreds of rendered frames across both walls.
 - Smoothstep interpolation between IK waypoints.
 - Lift motions prevent unwanted diagonal paint marks.
 
@@ -158,7 +158,7 @@ Proof points:
 
 Tell the story: The design includes physical reasoning, not just animation.
 
-Visuals:
+Visuals (from `section_4_dynamics/`):
 
 - `dynamics_passive.png`
 - `dynamics_controlled.png`

@@ -286,7 +286,7 @@ def _style_wall_path_axis(ax, title):
 def render_line_passes():
     fig, ax = plt.subplots(figsize=(12, 6), dpi=180)
     fig.patch.set_facecolor("#f8fafc")
-    _style_wall_path_axis(ax, "Wall 1: coverage stripe passes")
+    _style_wall_path_axis(ax, "Wall 2: coverage stripe passes")
     colors = ["#1f6feb", "#16a34a", "#d65f21", "#7c3aed", "#16a34a"]
     for i, z in enumerate([760, 650, 540, 430, 320]):
         y = np.linspace(-270, 270, 90)
@@ -302,7 +302,7 @@ def render_line_passes():
 def render_smiley_path():
     fig, ax = plt.subplots(figsize=(12, 6), dpi=180)
     fig.patch.set_facecolor("#f8fafc")
-    _style_wall_path_axis(ax, "Wall 2: curved detail path")
+    _style_wall_path_axis(ax, "Wall 1: curved detail path")
     t = np.linspace(0, 2 * np.pi, 180)
     ax.plot(190 * np.cos(t), 570 + 190 * np.sin(t), color="#d65f21", linewidth=5)
     ax.plot(-78 + 34 * np.cos(t), 650 + 34 * np.sin(t), color="#d65f21", linewidth=4)
