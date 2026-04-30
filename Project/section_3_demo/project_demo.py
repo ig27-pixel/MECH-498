@@ -2,6 +2,8 @@
 
 Wall 1 (X = +900 mm): a smiley face (outline, eyes, smile).
 Wall 2 (Y = +900 mm): five horizontal colour-sweep stripes.
+Wall 3 (X = -900 mm): five horizontal colour-sweep stripes.
+Wall 4 (Y = -900 mm): five horizontal colour-sweep stripes.
 
 Run from the repository root:
     python Project/section_3_demo/project_demo.py          # live window
@@ -85,7 +87,7 @@ def _nozzle_room_to_ee_fk(room_x: float, room_y: float, room_z: float) -> np.nda
 # ── main demo class ───────────────────────────────────────────────────────────
 
 class RoboRollRoomDemo(RoboRoll):
-    """Two-wall painting demonstration for RoboRoll Coatings."""
+    """Four-wall painting demonstration for RoboRoll Coatings."""
 
     ROOM_HALF = 1000.0   # room extends ±1000 mm in X and Y, 0–1000 mm in Z
 
@@ -94,10 +96,20 @@ class RoboRollRoomDemo(RoboRoll):
     W1_Y0, W1_Y1 = -240.0, 240.0
     W1_Z0, W1_Z1 =  310.0, 750.0
 
-    # Wall 2 (Y = 900): painting panel bounds
+    # Wall 2 (Y = +900): painting panel bounds
     W2_Y  = 900.0
     W2_X0, W2_X1 = -240.0, 240.0
     W2_Z0, W2_Z1 =  310.0, 750.0
+
+    # Wall 3 (X = -900): painting panel bounds
+    W3_X  = -900.0
+    W3_Y0, W3_Y1 = -240.0, 240.0
+    W3_Z0, W3_Z1 =  310.0, 750.0
+
+    # Wall 4 (Y = -900): painting panel bounds
+    W4_Y  = -900.0
+    W4_X0, W4_X1 = -240.0, 240.0
+    W4_Z0, W4_Z1 =  310.0, 750.0
 
     def __init__(self, drawing_enabled: bool = True,
                  frame_delay: float = 0.005,
@@ -303,6 +315,36 @@ class RoboRollRoomDemo(RoboRoll):
         for pt in smile_pts:
             wp.append(paint(ik(*pt), face_col))
 
+        wp.append(lift(home))
+
+        # ── Wall 3: five horizontal stripes (X = -900) ───────────────────────
+        stripe_z_w3      = [730, 625, 520, 415, 320]
+        stripe_colors_w3 = [  3,   4,   1,   2,   3]
+        stripe_ys_w3     = np.linspace(self.W3_Y0 + 20, self.W3_Y1 - 20, 7)
+
+        for i, (sz, sc) in enumerate(zip(stripe_z_w3, stripe_colors_w3)):
+            ys = stripe_ys_w3 if (i % 2 == 0) else stripe_ys_w3[::-1]
+            wp.append(lift(ik(self.W3_X, ys[0], sz + 70)))
+            for y in ys:
+                wp.append(paint(ik(self.W3_X, y, sz), sc))
+            wp.append(lift(ik(self.W3_X, ys[-1], sz + 70)))
+
+        wp.append(lift(home))
+
+        # ── Wall 4: five horizontal stripes (Y = -900) ───────────────────────
+        stripe_z_w4      = [730, 625, 520, 415, 320]
+        stripe_colors_w4 = [  4,   2,   3,   1,   4]
+        stripe_xs_w4     = np.linspace(self.W4_X0 + 20, self.W4_X1 - 20, 7)
+
+        for i, (sz, sc) in enumerate(zip(stripe_z_w4, stripe_colors_w4)):
+            xs = stripe_xs_w4 if (i % 2 == 0) else stripe_xs_w4[::-1]
+            wp.append(lift(ik(xs[0], self.W4_Y, sz + 70)))
+            for x in xs:
+                wp.append(paint(ik(x, self.W4_Y, sz), sc))
+            wp.append(lift(ik(xs[-1], self.W4_Y, sz + 70)))
+
+        wp.append(lift(home))
+
         return self._interpolate_waypoints(wp)
 
     # ── run ──────────────────────────────────────────────────────────────────
@@ -364,8 +406,10 @@ def main() -> None:
         return
 
     print("RoboRoll Coatings — Demo")
-    print("  Wall 1 (X=900 mm): smiley face")
-    print("  Wall 2 (Y=900 mm): five horizontal colour stripes")
+    print("  Wall 1 (X=+900 mm): smiley face")
+    print("  Wall 2 (Y=+900 mm): five horizontal colour stripes")
+    print("  Wall 3 (X=-900 mm): five horizontal colour stripes")
+    print("  Wall 4 (Y=-900 mm): five horizontal colour stripes")
 
     robot = RoboRollRoomDemo(
         drawing_enabled=True,
