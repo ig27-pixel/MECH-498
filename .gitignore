@@ -2,3 +2,5 @@ __pycache__/
 *.pyc
 *.pyo
 Project/pitch_deck/pitch_deck_plan.md
+Project/pitch_deck/export_pitch_deck.py
+Project/pitch_deck/render_pitch_mockups.py

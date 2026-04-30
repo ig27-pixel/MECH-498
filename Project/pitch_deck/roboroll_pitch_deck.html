@@ -172,7 +172,6 @@
       .media { min-height: 280px; }
     }
     @media print {
-      /* Force backgrounds and images to print at full fidelity */
       html {
         print-color-adjust: exact;
         -webkit-print-color-adjust: exact;
@@ -181,9 +180,7 @@
         size: 13.333in 7.5in;
         margin: 0;
       }
-      body {
-        background: white;
-      }
+      body { background: white; }
       .deck {
         height: auto;
         overflow: visible;
@@ -199,43 +196,63 @@
         page-break-after: always;
         break-after: page;
         scroll-snap-align: none;
-        padding: 0.48in 0.62in;
-        gap: 32px;
+        padding: 0.44in 0.55in;
+        gap: 26px;
+        align-items: center;
       }
       .slide:last-child {
         page-break-after: auto;
         break-after: auto;
       }
-      /* Restore two-column layout for centre slides so grids and image
-         sit side-by-side instead of stacking and overflowing the page */
+      /* Isolate each column so content never bleeds into the image area */
+      .content, .media {
+        overflow: hidden;
+        min-width: 0;
+      }
+      /* Center slides that have both .content and .media: restore side-by-side */
       .slide.center {
-        grid-template-columns: minmax(0, 1fr) minmax(300px, 0.85fr);
+        grid-template-columns: minmax(0, 1fr) minmax(260px, 0.8fr);
         text-align: left;
         align-items: center;
       }
       .slide.center .content {
         margin: 0;
+        max-width: none;
       }
-      /* Ensure dark-background slides print correctly */
-      .slide.dark  { background: #111827; }
-      .slide.full  { background-color: #0a1220; }
+      /* Center slides with content only and no media (A8, A9) */
+      .slide.center.solo {
+        grid-template-columns: 1fr;
+        text-align: center;
+      }
+      .slide.center.solo .content {
+        margin: 0 auto;
+        max-width: 10in;
+      }
+      /* Hero slide: use gradient only so it prints reliably without the bg image */
+      .slide.full {
+        background: linear-gradient(
+          110deg, rgba(10,18,32,0.96) 0%, rgba(10,18,32,0.72) 100%
+        ) #0a1220;
+      }
+      .slide.dark { background: #111827; }
       .notes { display: none; }
-      /* Typography */
-      h1  { font-size: 50pt; }
-      h2  { font-size: 34pt; }
-      p   { font-size: 16pt; line-height: 1.3; }
-      .eyebrow { font-size: 11pt; margin-bottom: 10px; }
-      li  { font-size: 18pt; }
-      ul  { margin-top: 20px; gap: 12px; }
+      /* Typography — scaled down from screen to fit slide height */
+      h1       { font-size: 40pt; line-height: 1.02; }
+      h2       { font-size: 26pt; line-height: 1.05; }
+      p        { font-size: 12pt; line-height: 1.28; margin-top: 8px; }
+      .eyebrow { font-size: 9pt;  margin-bottom: 8px; }
+      li       { font-size: 14pt; line-height: 1.2; }
+      ul       { margin-top: 14px; gap: 8px; }
       /* Tiles */
-      .tile strong { font-size: 20pt; margin-bottom: 6px; }
-      .tile span   { font-size: 13pt; }
-      .grid3, .grid4 { margin-top: 22px; gap: 14px; }
-      .two-col       { margin-top: 20px; gap: 14px; }
-      /* Media — remove the fixed min-height and tighten the image ceiling */
-      .media { min-height: 0; }
-      .media img       { max-height: 5.8in; border: none; background: none; }
-      .split-images img { max-height: 2.7in;  border: none; background: none; }
+      .tile          { border-top-width: 3px; padding-top: 9px; }
+      .tile strong   { font-size: 14pt; margin-bottom: 4px; }
+      .tile span     { font-size: 10pt; line-height: 1.25; }
+      .grid3, .grid4 { margin-top: 16px; gap: 11px; }
+      .two-col       { margin-top: 14px; gap: 11px; }
+      /* Images */
+      .media             { min-height: 0; }
+      .media img         { max-width: 100%; max-height: 4.8in; border: none; background: none; }
+      .split-images img  { max-width: 100%; max-height: 2.2in; border: none; background: none; }
     }
   </style>
 </head>
@@ -297,10 +314,10 @@
     <section class="slide">
       <div class="content">
         <p class="eyebrow">4. Product demo</p>
-        <h2>The simulated robot already paints across two walls.</h2>
+        <h2>The simulated robot already paints across four walls.</h2>
         <ul>
           <li>Wall 1: smiley face — outline, eyes, and smile arc.</li>
-          <li>Wall 2: five horizontal color stripes.</li>
+          <li>Walls 2–4: five horizontal color stripes each.</li>
           <li>Curved paths prove more than straight-line coverage.</li>
         </ul>
       </div>
@@ -449,7 +466,7 @@
       </div>
     </section>
 
-    <section class="slide center">
+    <section class="slide center solo">
       <div class="content">
         <p class="eyebrow">A8. Risks and mitigations</p>
         <h2>The key risks are practical and testable.</h2>
@@ -462,7 +479,7 @@
       </div>
     </section>
 
-    <section class="slide center">
+    <section class="slide center solo">
       <div class="content">
         <p class="eyebrow">A9. Funding use</p>
         <h2>Funding turns the validated simulation into a prototype.</h2>
