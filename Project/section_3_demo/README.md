@@ -5,10 +5,8 @@ using planned IK paths and smoothstep-interpolated waypoints.
 
 ## Files
 
-- `project_demo.py`: main demo — builds the full two-wall painting path and
-  animates it in a live matplotlib 3D window.
-- `export_demo_gif.py`: headless version that captures frames and saves the
-  animation as `roboroll_demo.gif`.
+- `project_demo.py`: demo and GIF exporter — run live or with `--gif` to
+  export headlessly.
 - `roboroll_demo.gif`: pre-generated reference animation.
 - `roboroll_demo_snapshot.png`: still image of the completed demo scene.
 
@@ -20,8 +18,8 @@ From the repository root (`MECH-498`):
 # Live interactive animation
 python Project/section_3_demo/project_demo.py
 
-# Export animation to GIF (no display required)
-python Project/section_3_demo/export_demo_gif.py
+# Export animation to roboroll_demo.gif (no display required)
+python Project/section_3_demo/project_demo.py --gif
 ```
 
 ## Demo Sequence

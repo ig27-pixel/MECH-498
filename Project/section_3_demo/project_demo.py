@@ -4,7 +4,8 @@ Wall 1 (X = +900 mm): a smiley face (outline, eyes, smile).
 Wall 2 (Y = +900 mm): five horizontal colour-sweep stripes.
 
 Run from the repository root:
-    python Project/section_3_demo/project_demo.py
+    python Project/section_3_demo/project_demo.py          # live window
+    python Project/section_3_demo/project_demo.py --gif    # export GIF
 """
 
 import math
@@ -12,6 +13,11 @@ import os
 import sys
 import time
 from typing import List, Tuple
+
+# Use the non-interactive Agg backend before pyplot is imported when exporting.
+if "--gif" in sys.argv:
+    import matplotlib
+    matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -346,7 +352,50 @@ class RoboRollRoomDemo(RoboRoll):
 
 # ── entry point ───────────────────────────────────────────────────────────────
 
+def export_gif() -> None:
+    """Render the demo headlessly and save it as roboroll_demo.gif."""
+    from PIL import Image
+
+    out_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                            "roboroll_demo.gif")
+
+    robot = RoboRollRoomDemo(
+        drawing_enabled=True,
+        frame_delay=0.0,
+        samples_per_segment=5,
+    )
+    robot.fig.set_size_inches(6.4, 6.4)
+    robot.fig.set_dpi(100)
+
+    path = robot.build_demo_path()
+    frames = []
+    keep_every = 2
+
+    for index, (joint_angles, color, should_paint, wrist_angle) in enumerate(path):
+        robot.draw_demo_pose(joint_angles, color=color,
+                             leave_paint=should_paint,
+                             wrist_visual_angle=wrist_angle)
+        if index % keep_every == 0 or index == len(path) - 1:
+            robot.fig.canvas.draw()
+            w, h = robot.fig.canvas.get_width_height()
+            frame = Image.frombuffer("RGBA", (w, h),
+                                     memoryview(robot.fig.canvas.buffer_rgba()),
+                                     "raw", "RGBA", 0, 1
+                                     ).convert("P", palette=Image.Palette.ADAPTIVE)
+            frames.append(frame.copy())
+
+    frames[0].save(out_path, save_all=True, append_images=frames[1:],
+                   duration=55, loop=0, optimize=True)
+    plt.close(robot.fig)
+    print(f"Saved {out_path}")
+    print(f"Rendered {len(frames)} GIF frames from {len(path)} demo poses")
+
+
 def main() -> None:
+    if "--gif" in sys.argv:
+        export_gif()
+        return
+
     print("RoboRoll Coatings — Demo")
     print("  Wall 1 (X=900 mm): smiley face")
     print("  Wall 2 (Y=900 mm): five horizontal colour stripes")
