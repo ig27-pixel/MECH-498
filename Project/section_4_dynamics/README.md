@@ -41,5 +41,3 @@ the manoeuvre time.
   in millimeters and divided by 1000 internally.
 - The simulation treats J2/J3/J4 as operating in a vertical plane whose
   normal rotates with J1 (base yaw).
-- `dynamics_passive.png` and `dynamics_controlled.png` are used directly by
-  slide A6 in the pitch deck.

@@ -8,7 +8,6 @@ IK paths and smoothstep-interpolated waypoints.
 - `project_demo.py`: demo and GIF exporter — run live or with `--gif` to
   export headlessly.
 - `roboroll_demo.gif`: pre-generated reference animation.
-- `roboroll_demo_snapshot.png`: still image of the completed demo scene.
 
 ## Run
 

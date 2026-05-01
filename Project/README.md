@@ -13,7 +13,7 @@ with a fixed 500 mm column and a 200 mm paint nozzle offset.
 | `section_1_2_kinematics/` | Robot model, FK/IK, and DH parameter diagram |
 | `section_3_demo/` | Four-wall painting trajectory demo and snapshot |
 | `section_4_dynamics/` | Passive and controlled dynamics simulation and plots |
-| `pitch_deck/` | HTML/PPTX deck, plan notes, and mockup renders |
+| `pitch_deck/` | Investor pitch deck slides and mockup images |
 | `shared/` | Reusable drawing, utility, joint, link, and brush helpers |
 
 ## Related Root Files
@@ -35,15 +35,7 @@ python Project/section_3_demo/project_demo.py
 
 # Section 4 — dynamics simulation plots
 python Project/section_4_dynamics/RoboRoll_dynamics.py
-
-# Pitch deck — open roboroll_pitch_deck.html in a browser to present
 ```
-
-## Pitch Deck Files
-
-- `pitch_deck/roboroll_pitch_deck.html`: browser-presentable slide deck.
-- `pitch_deck/roboroll_pitch_deck.pptx`: PowerPoint export (run `export_pitch_deck.py`; requires `python-pptx`).
-- `pitch_deck/pitch_deck_plan.md`: slide strategy and speaker notes.
 
 ## Notes
 
