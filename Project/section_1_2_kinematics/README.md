@@ -7,18 +7,8 @@ frame assignment, forward kinematics, and inverse kinematics.
 
 - `RoboRoll.py`: complete robot model — DH parameters, FK, IK, joint limits,
   and 3D matplotlib drawing support.
-- `dh_graphic.py`: standalone script that renders the Modified DH frame diagram
-  and DH parameter table and saves `dh_parameters.png`.
-- `dh_parameters.png`: generated DH frame assignment diagram.
-
-## Run
-
-From the repository root (`MECH-498`):
-
-```bash
-# Regenerate the DH parameter diagram
-python Project/section_1_2_kinematics/dh_graphic.py
-```
+- `dh_parameters.png`: DH frame assignment diagram (pre-generated; submitted
+  directly as the Section 1 graphic deliverable).
 
 ## Notes
 

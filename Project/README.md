@@ -27,9 +27,6 @@ with a fixed 500 mm column and a 200 mm paint nozzle offset.
 From the repository root (`MECH-498`):
 
 ```bash
-# Section 1/2 — regenerate DH parameter diagram
-python Project/section_1_2_kinematics/dh_graphic.py
-
 # Section 3 — four-wall painting animation
 python Project/section_3_demo/project_demo.py
 

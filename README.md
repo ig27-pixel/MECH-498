@@ -40,7 +40,7 @@ otherwise. Several scripts open matplotlib windows.
 | `Lab-3/` | `python test_script_student.py` | Fanuc IK visual tests |
 | `Lab-4/` | `python test_rr_bot.py` | RRBot free-motion and setpoint-control |
 | `Lab-4/` | `python test_rob.py 1` | RobStudent trajectory case 1 simulation |
-| Repository root | `python Project/section_3_demo/project_demo.py` | Two-wall painting animation |
+| Repository root | `python Project/section_3_demo/project_demo.py` | Four-wall painting animation |
 
 ## Notes
 

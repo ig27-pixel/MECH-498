@@ -15,10 +15,9 @@ leave-behind technical details, and transition slides.
 
 ## Notes
 
-- The deck source is `roboroll_pitch_deck.html` — open in Chrome or Edge to
-  present, or print to PDF using **Print → Save as PDF** with backgrounds
-  enabled and margins set to none.
-- Mockup images in `images/` are generated renders, not photographs.
-- Dynamics plots referenced in slide A6 live in
+- The deck is `RRC_pitch_deck.pptx` (editable source) and `RRC_pitch_deck.pdf`
+  (print-ready export). Open the PDF in any viewer to present, or the PPTX in
+  PowerPoint to edit.
+- Dynamics plots referenced in the appendix slides live in
   `../section_4_dynamics/dynamics_passive.png` and
   `../section_4_dynamics/dynamics_controlled.png`.
